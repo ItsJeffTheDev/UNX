@@ -56,14 +56,14 @@ Future syntax such as numbers, arithmetic, conditions, loops, functions, inline 
   "id": "org.example.hello",
   "name": "Hello UNX",
   "version": "0.1.0",
-  "entry": "main.unx",
+  "entry": "main.unxc",
   "permissions": []
 }
 ```
 
 `format` must be `UNX`; `format_version` must be `1`. `entry` is a relative package path. Production runtimes must reject unknown permissions rather than silently granting them.
 
-## Package v1
+## Source and distribution file roles\n\n- `.unxc` is the editable, human-authored UNX source file extension.\n- `.unx` is the distributable package extension. In the current prototype it is a ZIP archive containing `manifest.json` and the entry source; it is not native machine code or an operating-system installer.\n- The long-term portability goal requires a compatible UNX runtime or target-specific compiler/backend on each supported device. The extension alone does not make a package execute on every OS.\n\n## Package v1
 
 A `.unx` package is a ZIP archive with `manifest.json` at root and the declared entry file. Additional resources may later live under `assets/`. Production archive handling must reject path traversal, symlinks, duplicate paths, oversized files, excessive compression ratios, and unexpected entries.
 
