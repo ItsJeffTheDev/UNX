@@ -499,7 +499,7 @@ mod tests {
 
     #[test]
     fn rejects_unsafe_package_paths() {
-        for path in ["", "../main.unx", "src/../main.unx", "/etc/passwd", "//server/share", "src\\\\main.unx", "C:/Windows/file", ".", "src//main.unx", "main\\n.unx", "main\\0.unx"] {
+        for path in ["", "../main.unx", "src/../main.unx", "/etc/passwd", "//server/share", "src\\\\main.unx", "C:/Windows/file", ".", "src//main.unx", "main\n.unx", "main\0.unx"] {
             assert!(!is_safe_package_path(path), "expected unsafe path to be rejected: {path}");
         }
     }
