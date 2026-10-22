@@ -51,6 +51,7 @@ say product_copy # Inline comments are supported too
 - [Full project roadmap](docs/ROADMAP.md)
 - [Language specification 0.1](docs/SPEC-0.1.md)
 - [Build and test guide](docs/BUILD-AND-TEST.md)
+- [Rust toolchain and dependency reproducibility policy](docs/RUST-TOOLCHAIN.md)
 
 ## Security warning
 
