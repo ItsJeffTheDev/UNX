@@ -9,6 +9,8 @@ use std::{
 
 const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
 const MAX_SOURCE_BYTES: u64 = 10 * 1024 * 1024;
+const MAX_PACKAGE_BYTES: u64 = 20 * 1024 * 1024;
+const MAX_PACKAGE_ENTRIES: usize = 2;
 
 const MANIFEST_NAME: &str = "manifest.json";
 
@@ -240,7 +242,7 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     if manifest.format != "UNX" || manifest.format_version != 1 {
         return Err("unsupported UNX package format/version".into());
     }
-    if !is_safe_package_path(&manifest.entry) {
+    if !is_safe_package_path(&manifest.entry) || manifest.entry == MANIFEST_NAME {
         return Err("unsafe entry path in manifest".into());
     }
     if manifest.id.trim().is_empty() || manifest.name.trim().is_empty() || manifest.version.trim().is_empty() {
@@ -250,8 +252,39 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
 }
 
 fn load_package(path: &Path) -> Result<(Manifest, String), String> {
+    let metadata = fs::metadata(path).map_err(|e| format!("cannot inspect package: {e}"))?;
+    if metadata.len() > MAX_PACKAGE_BYTES {
+        return Err("package exceeds the 20 MiB size limit".into());
+    }
     let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("invalid ZIP package: {e}"))?;
+    if archive.len() != MAX_PACKAGE_ENTRIES {
+        return Err("package must contain exactly manifest.json and one entry source file".into());
+    }
+
+    let mut names = std::collections::HashSet::new();
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index).map_err(|e| format!("invalid ZIP entry: {e}"))?;
+        let name = entry.name().to_string();
+        if !names.insert(name.clone()) {
+            return Err(format!("duplicate ZIP entry '{name}'"));
+        }
+        if entry.is_dir() {
+            return Err(format!("directory entries are not allowed: '{name}'"));
+        }
+        if name != MANIFEST_NAME && !is_safe_package_path(&name) {
+            return Err(format!("unsafe ZIP entry path '{name}'"));
+        }
+        if let Some(mode) = entry.unix_mode() {
+            if mode & 0o170000 == 0o120000 {
+                return Err(format!("symbolic-link ZIP entries are not allowed: '{name}'"));
+            }
+        }
+    }
+    if !names.contains(MANIFEST_NAME) {
+        return Err("package is missing manifest.json".into());
+    }
+
     let manifest: Manifest = {
         let mut entry = archive.by_name(MANIFEST_NAME).map_err(|_| "package is missing manifest.json".to_string())?;
         if entry.size() > MAX_MANIFEST_BYTES {
@@ -262,6 +295,13 @@ fn load_package(path: &Path) -> Result<(Manifest, String), String> {
         serde_json::from_str(&text).map_err(|e| format!("invalid manifest: {e}"))?
     };
     validate_manifest(&manifest)?;
+    if !names.contains(&manifest.entry) {
+        return Err(format!("package is missing entry file '{}'", manifest.entry));
+    }
+    if names.len() != 2 || manifest.entry == MANIFEST_NAME {
+        return Err("package contains unexpected ZIP entries".into());
+    }
+
     let mut entry = archive.by_name(&manifest.entry)
         .map_err(|_| format!("package is missing entry file '{}'", manifest.entry))?;
     if entry.size() > MAX_SOURCE_BYTES {
