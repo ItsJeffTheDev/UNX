@@ -212,7 +212,7 @@ mod tests {
     fn parses_quoted_strings_and_escapes() {
         assert_eq!(parse_quoted("\"hello\""), Some("hello".to_string()));
         assert_eq!(parse_quoted("\"a\\\\nb\""), Some("a\\nb".to_string()));
-        assert_eq!(parse_quoted("\"line\\\nnext\""), Some("line\nnext".to_string()));
+        assert_eq!(parse_quoted("\"line\\nnext\""), Some("line\nnext".to_string()));
         assert_eq!(parse_quoted("\"say \\\"hi\\\"\""), Some("say \"hi\"".to_string()));
         assert_eq!(parse_quoted("\"bad\\qescape\""), None);
         assert_eq!(parse_quoted("\"unterminated\\\"quote\""), None);
