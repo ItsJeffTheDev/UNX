@@ -32,6 +32,12 @@ function activate(context) {
       return;
     }
     const outputDir = path.join(folder.uri.fsPath, "build");
+    try {
+      await vscode.workspace.fs.createDirectory(vscode.Uri.file(outputDir));
+    } catch (error) {
+      vscode.window.showErrorMessage("Could not create the build directory: " + error.message);
+      return;
+    }
     const outputFile = path.join(outputDir, path.basename(folder.uri.fsPath) + ".unx");
     const executable = vscode.workspace.getConfiguration("unx").get("executablePath", "unx");
     output.show(true);
