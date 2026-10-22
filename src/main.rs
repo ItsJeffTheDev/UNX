@@ -554,6 +554,48 @@ mod tests {
     }
 
     #[test]
+    fn rejects_manifest_with_empty_required_metadata() {
+        let mut manifest = Manifest {
+            format: "UNX".into(),
+            format_version: 1,
+            id: "org.example.app".into(),
+            name: "Example".into(),
+            version: "0.1.0".into(),
+            entry: "main.unx".into(),
+            permissions: vec![],
+        };
+
+        manifest.id = "  ".into();
+        assert!(validate_manifest(&manifest).unwrap_err().contains("must not be empty"));
+
+        manifest.id = "org.example.app".into();
+        manifest.name = "".into();
+        assert!(validate_manifest(&manifest).unwrap_err().contains("must not be empty"));
+
+        manifest.name = "Example".into();
+        manifest.version = "\t".into();
+        assert!(validate_manifest(&manifest).unwrap_err().contains("must not be empty"));
+    }
+
+    #[test]
+    fn rejects_unsupported_manifest_format_and_version() {
+        let mut manifest = Manifest {
+            format: "OTHER".into(),
+            format_version: 1,
+            id: "org.example.app".into(),
+            name: "Example".into(),
+            version: "0.1.0".into(),
+            entry: "main.unx".into(),
+            permissions: vec![],
+        };
+        assert!(validate_manifest(&manifest).unwrap_err().contains("unsupported"));
+
+        manifest.format = "UNX".into();
+        manifest.format_version = 99;
+        assert!(validate_manifest(&manifest).unwrap_err().contains("unsupported"));
+    }
+
+    #[test]
     fn validates_manifest_fields_and_version() {
         let manifest = Manifest {
             format: "UNX".into(),
