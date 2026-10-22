@@ -29,7 +29,7 @@ struct Manifest {
 
 fn usage() {
     eprintln!(
-        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, open window \"Title\", set window width/height to \"800\", button \"Click me\" say \"Clicked!\", # comment"
+        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, open window \"Title\", set window width/height to \"800\", button \"Click me\" say \"Clicked!\" or say variableName, # comment"
     );
 }
 
@@ -67,6 +67,7 @@ enum Statement {
     SetWindowWidth { value: String, line: usize, column: usize },
     SetWindowHeight { value: String, line: usize, column: usize },
     Button { label: String, message: String, line: usize, column: usize },
+    ButtonVariable { label: String, variable: String, line: usize, column: usize },
 }
 
 #[derive(Debug, PartialEq)]
@@ -184,11 +185,17 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                     TokenKind::String(value) if !value.trim().is_empty() => value.clone(),
                     _ => return Err(format!("line {line_no}, column {}: expected a non-empty quoted button label", tokens[1].column)),
                 };
-                let message = match &tokens[3].kind {
-                    TokenKind::String(value) => value.clone(),
-                    _ => return Err(format!("line {line_no}, column {}: expected a quoted message after button say", tokens[3].column)),
-                };
-                statements.push(Statement::Button { label, message, line: line_no, column: first.column });
+                match &tokens[3].kind {
+                    TokenKind::String(message) => statements.push(Statement::Button {
+                        label, message: message.clone(), line: line_no, column: first.column,
+                    }),
+                    TokenKind::Identifier(variable) if is_valid_identifier(variable) => {
+                        statements.push(Statement::ButtonVariable {
+                            label, variable: variable.clone(), line: line_no, column: first.column,
+                        });
+                    }
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted message or variable name after button say", tokens[3].column)),
+                }
             }
             TokenKind::Open => {
                 if tokens.len() != 3 || tokens[1].kind != TokenKind::Window {
@@ -290,6 +297,15 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
                 if window_title.is_none() {
                     return Err(format!("line {line}, column {column}: button requires an open window"));
                 }
+                window_buttons.push((label.clone(), message.clone()));
+            }
+            Statement::ButtonVariable { label, variable, line, column } => {
+                if window_title.is_none() {
+                    return Err(format!("line {line}, column {column}: button requires an open window"));
+                }
+                let message = vars.get(variable).ok_or_else(|| {
+                    format!("line {line}, column {column}: undefined variable '{variable}'")
+                })?;
                 window_buttons.push((label.clone(), message.clone()));
             }
             Statement::SetWindowWidth { value, line, column } => {
@@ -694,6 +710,21 @@ mod tests {
         assert_eq!(program[1], Statement::Button {
             label: "Click me".into(), message: "Button clicked!".into(), line: 2, column: 1,
         });
+    }
+
+    #[test]
+    fn button_can_display_a_variable_value() {
+        let program = parse_program("set greeting to \"Hello from UNX!\"\nopen window \"Test\"\nbutton \"Greet\" say greeting").unwrap();
+        assert_eq!(program[2], Statement::ButtonVariable {
+            label: "Greet".into(), variable: "greeting".into(), line: 3, column: 1,
+        });
+        assert!(execute_program(&program, false).is_ok());
+    }
+
+    #[test]
+    fn button_rejects_undefined_variable() {
+        let program = parse_program("open window \"Test\"\nbutton \"Greet\" say missing").unwrap();
+        assert!(execute_program(&program, false).unwrap_err().contains("undefined variable 'missing'"));
     }
 
     #[test]
