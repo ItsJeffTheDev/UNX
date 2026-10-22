@@ -60,14 +60,14 @@ Copy a value and test it:
     set copied_language to language
     if copied_language equals "UNX" say "The value matches!"
 
-The `if` statement compares a previously defined variable with an exact quoted string. Its single-line `say` action runs only when the values match. The message after `say` can be a quoted string or an existing variable name. If the condition is false, execution continues with the next line.
+The single-line `if` compares a previously defined variable with an exact quoted string and only runs its `say` action when the values match. Multi-line blocks start with `if VARIABLE equals "VALUE"`, may include one `else`, and must end with `end`. Blocks can be nested. The interpreter executes only the selected branch.
 
 Comments:
 
     # This is ignored by the current interpreter
     say "Comments start with a number sign"
 
-String literals use double quotes. Supported escapes include backslash-n for newline, backslash-t for tab, escaped quote, and escaped backslash. Keywords are lowercase and case-sensitive. The prototype supports single-line exact-string conditions. It does not yet support arithmetic, `else`, multi-line conditional blocks, loops, functions, or networking. GUI buttons and windows are experimental.
+String literals use double quotes. Supported escapes include backslash-n for newline, backslash-t for tab, escaped quote, and escaped backslash. Keywords are lowercase and case-sensitive. The prototype supports single-line and multi-line exact-string conditions, including nested `if` blocks and an optional `else`. It does not yet support arithmetic, loops, functions, or networking. GUI buttons and windows are experimental.
 
 ## 5. Build a distributable package
 
