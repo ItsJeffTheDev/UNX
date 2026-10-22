@@ -65,6 +65,9 @@ enum Statement {
     SetString { name: String, value: String, line: usize, column: usize },
     SetVariable { name: String, source: String, line: usize, column: usize },
     IfEqualsSay { variable: String, expected: String, message: ConditionalMessage, line: usize, column: usize },
+    IfEqualsBegin { variable: String, expected: String, line: usize, column: usize },
+    ElseBlock { line: usize, column: usize },
+    EndBlock { line: usize, column: usize },
     OpenWindow { title: String, line: usize, column: usize },
     SetWindowWidth { value: String, line: usize, column: usize },
     SetWindowHeight { value: String, line: usize, column: usize },
@@ -84,6 +87,8 @@ enum TokenKind {
     Set,
     If,
     Equals,
+    Else,
+    End,
     To,
     Open,
     Window,
@@ -159,6 +164,8 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             "set" => TokenKind::Set,
             "if" => TokenKind::If,
             "equals" => TokenKind::Equals,
+            "else" => TokenKind::Else,
+            "end" => TokenKind::End,
             "to" => TokenKind::To,
             "open" => TokenKind::Open,
             "window" => TokenKind::Window,
@@ -181,6 +188,7 @@ fn is_valid_identifier(name: &str) -> bool {
 
 fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
     let mut statements = Vec::new();
+    let mut blocks: Vec<(usize, bool)> = Vec::new();
     for (index, raw) in source.lines().enumerate() {
         let line_no = index + 1;
         let trimmed = raw.trim();
@@ -193,8 +201,21 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
         let Some(first) = tokens.first() else { continue; };
         match &first.kind {
             TokenKind::If => {
+                if tokens.len() == 4 && tokens[2].kind == TokenKind::Equals {
+                    let variable = match &tokens[1].kind {
+                        TokenKind::Identifier(name) if is_valid_identifier(name) => name.clone(),
+                        _ => return Err(format!("line {line_no}, column {}: expected a variable name after 'if'", tokens[1].column)),
+                    };
+                    let expected = match &tokens[3].kind {
+                        TokenKind::String(value) => value.clone(),
+                        _ => return Err(format!("line {line_no}, column {}: expected a quoted comparison value after 'equals'", tokens[3].column)),
+                    };
+                    blocks.push((line_no, false));
+                    statements.push(Statement::IfEqualsBegin { variable, expected, line: line_no, column: first.column });
+                    continue;
+                }
                 if tokens.len() != 6 || tokens[2].kind != TokenKind::Equals || tokens[4].kind != TokenKind::Say {
-                    return Err(format!("line {line_no}, column {}: expected 'if VARIABLE equals \"VALUE\" say \"MESSAGE\"' or a message variable", first.column));
+                    return Err(format!("line {line_no}, column {}: expected 'if VARIABLE equals \"VALUE\"' for a block or 'if VARIABLE equals \"VALUE\" say \"MESSAGE\"' for a single-line condition", first.column));
                 }
                 let variable = match &tokens[1].kind {
                     TokenKind::Identifier(name) if is_valid_identifier(name) => name.clone(),
@@ -210,6 +231,28 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                     _ => return Err(format!("line {line_no}, column {}: expected a quoted message or variable name after 'say'", tokens[5].column)),
                 };
                 statements.push(Statement::IfEqualsSay { variable, expected, message, line: line_no, column: first.column });
+            }
+            TokenKind::Else => {
+                if tokens.len() != 1 {
+                    return Err(format!("line {line_no}, column {}: 'else' must be alone on its line", first.column));
+                }
+                let Some((_, already_has_else)) = blocks.last_mut() else {
+                    return Err(format!("line {line_no}, column {}: 'else' without a matching 'if'", first.column));
+                };
+                if *already_has_else {
+                    return Err(format!("line {line_no}, column {}: duplicate 'else' for this 'if'", first.column));
+                }
+                *already_has_else = true;
+                statements.push(Statement::ElseBlock { line: line_no, column: first.column });
+            }
+            TokenKind::End => {
+                if tokens.len() != 1 {
+                    return Err(format!("line {line_no}, column {}: 'end' must be alone on its line", first.column));
+                }
+                if blocks.pop().is_none() {
+                    return Err(format!("line {line_no}, column {}: 'end' without a matching 'if'", first.column));
+                }
+                statements.push(Statement::EndBlock { line: line_no, column: first.column });
             }
             TokenKind::Button => {
                 if tokens.len() != 4 || tokens[2].kind != TokenKind::Say {
@@ -297,7 +340,17 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
             _ => return Err(format!("line {line_no}, column {}: unknown statement", first.column)),
         }
     }
+    if let Some((line, _)) = blocks.first() {
+        return Err(format!("line {line}, column 1: missing 'end' for conditional block"));
+    }
     Ok(statements)
+}
+
+#[derive(Debug)]
+struct ConditionalFrame {
+    parent_active: bool,
+    condition: bool,
+    in_else: bool,
 }
 
 fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), String> {
@@ -307,9 +360,53 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
     let mut window_height: usize = 500;
     let mut window_lines: Vec<String> = Vec::new();
     let mut window_buttons: Vec<(String, String)> = Vec::new();
+    let mut conditions: Vec<ConditionalFrame> = Vec::new();
 
     for statement in statements {
         match statement {
+            Statement::IfEqualsBegin { variable, expected, line, column } => {
+                let parent_active = conditions.iter().all(|frame| {
+                    frame.parent_active && if frame.in_else { !frame.condition } else { frame.condition }
+                });
+                let condition = if parent_active {
+                    let actual = vars.get(variable).ok_or_else(|| {
+                        format!("line {line}, column {column}: undefined variable '{variable}'")
+                    })?;
+                    actual == expected
+                } else {
+                    false
+                };
+                conditions.push(ConditionalFrame { parent_active, condition, in_else: false });
+                continue;
+            }
+            Statement::ElseBlock { line, column } => {
+                let Some(frame) = conditions.last_mut() else {
+                    return Err(format!("line {line}, column {column}: 'else' without a matching 'if'"));
+                };
+                if frame.in_else {
+                    return Err(format!("line {line}, column {column}: duplicate 'else' for this 'if'"));
+                }
+                frame.in_else = true;
+                continue;
+            }
+            Statement::EndBlock { line, column } => {
+                if conditions.pop().is_none() {
+                    return Err(format!("line {line}, column {column}: 'end' without a matching 'if'"));
+                }
+                continue;
+            }
+            _ => {}
+        }
+
+        let active = conditions.iter().all(|frame| {
+            frame.parent_active && if frame.in_else { !frame.condition } else { frame.condition }
+        });
+        if !active {
+            continue;
+        }
+
+        match statement {
+            Statement::IfEqualsBegin { .. } | Statement::ElseBlock { .. } | Statement::EndBlock { .. } => unreachable!("handled above"),
             Statement::SayString { value, .. } => {
                 if window_title.is_some() {
                     window_lines.push(value.clone());
