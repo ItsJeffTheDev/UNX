@@ -132,6 +132,15 @@ fn help_and_version_are_available() {
 }
 
 #[test]
+fn invalid_cli_invocations_return_usage_error_status() {
+    for args in [&[][..], &["unknown-command"][..], &["run"][..], &["--help", "extra"][..]] {
+        let result = unx(args);
+        assert_eq!(result.status.code(), Some(2), "args: {args:?}");
+        assert!(text(&result.stderr).contains("Usage:"), "args: {args:?}");
+    }
+}
+
+#[test]
 fn pack_rejects_parent_traversal_entry_paths() {
     let dir = temp_dir("traversal");
     let project = dir.join("project");
