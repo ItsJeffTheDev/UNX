@@ -19,7 +19,33 @@ Statements:
 - `set name to "World"` creates/replaces a string variable.
 - `say name` prints a previously defined variable.
 
-Errors include a 1-based source line number. Unknown statements fail closed.
+Errors include a 1-based source line number. Unknown statements fail closed. This grammar describes the current 0.1 subset only; it is not a promise that future syntax is already implemented.
+
+### Lexical and grammar rules
+
+The current interpreter reads UTF-8 source one physical line at a time. A statement may have leading/trailing whitespace. A comment begins when the first non-whitespace character is `#`; inline comments are not currently supported. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
+
+Simplified line grammar (EBNF):
+
+```ebnf
+program       = { blank-line | comment-line | statement-line } ;
+blank-line    = whitespace ;
+comment-line  = whitespace, "#", { any-character-except-newline } ;
+statement-line = whitespace, statement, whitespace ;
+statement     = say-string | say-variable | set-string ;
+say-string    = "say", space, string ;
+say-variable  = "say", space, identifier ;
+set-string    = "set", space, identifier, space, "to", space, string ;
+string        = '"', { string-character | escape }, '"' ;
+escape        = '\\', ( '\\' | '"' | 'n' | 't' ) ;
+identifier    = ( letter | "_" ), { letter | digit | "_" } ;
+space         = " ", { whitespace } ;
+whitespace    = " " | "\\t" ;
+```
+
+The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning.
+
+Future syntax such as numbers, arithmetic, conditions, loops, functions, inline comments, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
 
 ## Manifest v1
 
