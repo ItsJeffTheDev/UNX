@@ -1,0 +1,58 @@
+name: Bug report
+description: Report a reproducible problem in the UNX CLI, package format, or editor support.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: "Please do not include credentials, private data, or untrusted package files containing sensitive information."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - UNX CLI / interpreter
+        - .unx package validation
+        - VS Code extension
+        - Documentation
+        - CI / development tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened instead? Include the full error message if possible.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest source example or command sequence that reproduces the issue.
+      render: text
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: UNX version / commit
+      placeholder: "e.g. commit SHA or CLI version"
+    validations:
+      required: false
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system
+      placeholder: "e.g. Windows 11, Ubuntu 24.04, macOS"
+    validations:
+      required: false
