@@ -24,6 +24,17 @@
     ],
     "description": "A starter program using the current UNX language subset"
   },
+  "Conditional block": {
+    "prefix": "unxif",
+    "body": [
+      "if ${1:name} equals \"${2:value}\"",
+      "    ${3:say \"Matched!\"}",
+      "else",
+      "    ${4:say \"Not matched.\"}",
+      "end"
+    ],
+    "description": "Insert an if/else block with a matching end"
+  },
   "GUI button": {
     "prefix": "unxbutton",
     "body": "button \"\u0024{1:Click me}\" say \"\u0024{2:Button clicked!}\"",
