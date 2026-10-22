@@ -56,7 +56,7 @@ Tasks:
 - [x] Set limits for manifest (1 MiB), source (10 MiB), package file size (20 MiB), and package entry count (exactly two).
 - [ ] Make package output deterministic where practical.
 - [x] Return clear diagnostics and non-zero exit codes for tested invalid inputs.
-- [x] Add and test help and version output (document exit-code behavior separately).
+- [x] Add and test help and version output; document success, command-failure, and usage-error exit codes.
 - [x] Test that inspect reports package contents without starting the application.
 
 **Acceptance:** Happy-path and malformed-package tests pass; invalid input produces useful errors instead of panics; inspection is non-executing; exit codes are documented.
