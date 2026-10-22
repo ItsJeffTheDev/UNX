@@ -1,0 +1,8 @@
+# Demonstrate variable assignment and single-line conditions
+set language to "UNX"
+set copied_language to language
+
+if copied_language equals "UNX" say "The condition matched!"
+if copied_language equals "other" say "This message should not appear."
+
+say "The program continues after each condition."
