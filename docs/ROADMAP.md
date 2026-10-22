@@ -39,8 +39,8 @@ Tasks:
 - [ ] Add cargo fmt --check and cargo clippy --all-targets --all-features -- -D warnings to CI, fixing issues they expose.
 - [ ] Verify documented commands from a clean checkout.
 - [ ] Update README status to reflect the passing CI run.
-- [ ] Add contribution instructions, issue templates, and a pull-request template.
-- [ ] Document the Rust toolchain policy.
+- [x] Add contribution instructions, bug/feature issue forms, and a pull-request template.
+- [x] Document the current stable-channel policy and the outstanding lockfile/CI limitations in `docs/RUST-TOOLCHAIN.md`.
 
 **Acceptance:** Clean locked builds and tests pass; CI checks pushes and pull requests; docs match actual behavior; new contributors can build and test.
 
