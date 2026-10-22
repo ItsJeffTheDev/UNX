@@ -22,3 +22,16 @@ Expected sample output includes `Hello from` and `UNX`. The `pack` command creat
 GitHub Actions runs `cargo build` and `cargo test` on pushes to `main`, pull requests, and manual workflow dispatches. The `cli` integration-test target exercises real subprocess invocations of the CLI, including source checking, direct execution, package round-tripping, and malformed-package rejection. Check the current result on the [Actions page](https://github.com/ItsJeffTheDev/UNX/actions).
 
 Until `Cargo.lock` is committed, builds may resolve newer compatible dependency versions over time. Do not treat this prototype as a hardened sandbox, and do not run packages from untrusted sources.
+
+
+## CLI exit codes
+
+The CLI uses these exit statuses:
+
+| Exit code | Meaning |
+|---:|---|
+| `0` | Command completed successfully; `--help` and `--version` also succeed. |
+| `1` | A valid command was requested, but execution failed—for example, invalid source, an unreadable file, or an invalid package. |
+| `2` | The command name or argument count is invalid. UNX prints usage information to standard error. |
+
+Scripts should check the process exit code rather than relying only on human-readable output. These statuses are covered by CLI integration tests for representative invalid invocations and command failures.
