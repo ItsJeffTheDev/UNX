@@ -69,7 +69,14 @@
           "description": "Path to the UNX CLI executable. Use an absolute path if unx is not on PATH."
         }
       }
-    }
+    },
+    "iconThemes": [
+      {
+        "id": "unx-file-icons",
+        "label": "UNX File Icons",
+        "path": "./icons/unx-icon-theme.json"
+      }
+    ]
   },
   "preview": true
 }
