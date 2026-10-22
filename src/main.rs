@@ -599,6 +599,43 @@ mod tests {
     }
 
     #[test]
+    fn package_reader_rejects_unsafe_archive_entry_paths() {
+        let dir = unique_temp_dir("unsafe-archive-path");
+        let package = dir.join("unsafe.unx");
+        let file = File::create(&package).unwrap();
+        let mut archive = zip::ZipWriter::new(file);
+        let options = zip::write::SimpleFileOptions::default();
+        archive.start_file(MANIFEST_NAME, options).unwrap();
+        archive.write_all(br#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test","version":"0.1.0","entry":"main.unx","permissions":[]}"#).unwrap();
+        archive.start_file("../main.unx", options).unwrap();
+        archive.write_all(b"say \"hi\"").unwrap();
+        archive.finish().unwrap();
+
+        let error = load_package(&package).unwrap_err();
+        assert!(error.contains("unsafe ZIP entry path"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn package_reader_rejects_oversized_uncompressed_source() {
+        let dir = unique_temp_dir("oversized-source");
+        let package = dir.join("oversized.unx");
+        let file = File::create(&package).unwrap();
+        let mut archive = zip::ZipWriter::new(file);
+        let options = zip::write::SimpleFileOptions::default();
+        archive.start_file(MANIFEST_NAME, options).unwrap();
+        archive.write_all(br#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test","version":"0.1.0","entry":"main.unx","permissions":[]}"#).unwrap();
+        archive.start_file("main.unx", options).unwrap();
+        let oversized_source = vec![b'a'; MAX_SOURCE_BYTES as usize + 1];
+        archive.write_all(&oversized_source).unwrap();
+        archive.finish().unwrap();
+
+        let error = load_package(&package).unwrap_err();
+        assert!(error.contains("entry source exceeds the 10 MiB size limit"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
     fn rejects_manifest_with_empty_required_metadata() {
         let mut manifest = Manifest {
             format: "UNX".into(),
