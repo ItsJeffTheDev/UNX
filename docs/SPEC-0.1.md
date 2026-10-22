@@ -17,6 +17,7 @@ Encoding: UTF-8. Newline-delimited statements. Whitespace around statements is i
 Statements:
 - `say "Hello"` prints a string.
 - `set name to "World"` creates/replaces a string variable.
+- `set copy to name` copies the current string value of an existing variable into another variable. The source must already be defined.
 - `say name` prints a previously defined variable.
 - `open window "Title"` opens an experimental desktop window.
 - `set window width to "800"` sets the window width (200–1920 pixels).
@@ -45,7 +46,7 @@ set-window-size = "set", space, "window", space, ("width" | "height"), space, "t
 button-statement = "button", space, string, space, "say", space, ( string | identifier ) ;
 say-string    = "say", space, string ;
 say-variable  = "say", space, identifier ;
-set-string    = "set", space, identifier, space, "to", space, string ;
+set-string    = "set", space, identifier, space, "to", space, ( string | identifier ) ;
 string        = '"', { string-character | escape }, '"' ;
 escape        = '\\', ( '\\' | '"' | 'n' | 't' ) ;
 identifier    = ( letter | "_" ), { letter | digit | "_" } ;
@@ -53,7 +54,7 @@ space         = " ", { whitespace } ;
 whitespace    = " " | "\t" ;
 ```
 
-The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
+The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal or the name of an existing variable rather than a general expression. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
 Future syntax such as numbers, arithmetic, conditions, loops, functions, inline comments, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
 
