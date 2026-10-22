@@ -32,7 +32,7 @@ Errors include 1-based source line and column numbers. Unknown statements and ma
 
 ### Lexical and grammar rules
 
-The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, `to`, `open`, `window`, `width`, `height`, and `button`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins at `#` outside a string literal. Full-line and trailing inline comments are supported when `#` begins a token after whitespace; a `#` inside a quoted string is ordinary text. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
+The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, `if`, `equals`, `else`, `end`, `to`, `open`, `window`, `width`, `height`, and `button`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins at `#` outside a string literal. Full-line and trailing inline comments are supported when `#` begins a token after whitespace; a `#` inside a quoted string is ordinary text. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
 
 Simplified line grammar (EBNF):
 
@@ -42,8 +42,11 @@ blank-line    = whitespace ;
 comment-line  = whitespace, "#", { any-character-except-newline } ;
 statement-line = whitespace, statement, [ whitespace, inline-comment ], whitespace ;
 inline-comment = "#", { any-character-except-newline } ;
-statement     = say-string | say-variable | set-string | if-equals-say | open-window | set-window-size | button-statement ;
+statement     = say-string | say-variable | set-string | if-equals-say | if-block | else-line | end-line | open-window | set-window-size | button-statement ;
 if-equals-say = "if", space, identifier, space, "equals", space, string, space, "say", space, ( string | identifier ) ;
+if-block      = "if", space, identifier, space, "equals", space, string ;
+else-line     = "else" ;
+end-line      = "end" ;
 open-window   = "open", space, "window", space, string ;
 set-window-size = "set", space, "window", space, ("width" | "height"), space, "to", space, string ;
 button-statement = "button", space, string, space, "say", space, ( string | identifier ) ;
