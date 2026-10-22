@@ -49,7 +49,7 @@
     },
     "keywords": {
       "name": "keyword.control.unx",
-      "match": "\\b(say|set|to|open|window|width|height|if|else|end|repeat|function|return)\\b"
+      "match": "\\b(say|set|to|open|window|width|height|button|if|else|end|repeat|function|return)\\b"
     },
     "constants": {
       "name": "constant.language.unx",
