@@ -824,6 +824,36 @@ mod tests {
     }
 
     #[test]
+    fn multiline_if_runs_only_the_matching_branch() {
+        let true_program = parse_program(
+            "set name to \"UNX\"\nif name equals \"UNX\"\n  say missing\nelse\n  say \"not matched\"\nend"
+        ).unwrap();
+        assert!(execute_program(&true_program, false).unwrap_err().contains("undefined variable 'missing'"));
+
+        let false_program = parse_program(
+            "set name to \"other\"\nif name equals \"UNX\"\n  say missing\nelse\n  say \"matched else\"\nend"
+        ).unwrap();
+        assert!(execute_program(&false_program, false).is_ok());
+    }
+
+    #[test]
+    fn multiline_if_supports_nested_blocks() {
+        let program = parse_program(
+            "set outer to \"yes\"\nset inner to \"yes\"\nif outer equals \"yes\"\nif inner equals \"yes\"\nsay missing\nend\nelse\nsay missing_outer\nend"
+        ).unwrap();
+        let error = execute_program(&program, false).unwrap_err();
+        assert!(error.contains("undefined variable 'missing'"));
+    }
+
+    #[test]
+    fn parser_rejects_unmatched_or_duplicate_block_markers() {
+        assert!(parse_program("else").unwrap_err().contains("else' without a matching 'if"));
+        assert!(parse_program("end").unwrap_err().contains("end' without a matching 'if"));
+        assert!(parse_program("if name equals \"yes\"\nelse\nelse\nend").unwrap_err().contains("duplicate 'else'"));
+        assert!(parse_program("if name equals \"yes\"\nsay \"open\"").unwrap_err().contains("missing 'end'"));
+    }
+
+    #[test]
     fn set_can_copy_an_existing_variable() {
         let program = parse_program("set original to \"UNX\"\nset copy to original\nsay copy").unwrap();
         assert_eq!(program[1], Statement::SetVariable {
