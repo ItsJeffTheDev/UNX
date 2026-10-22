@@ -24,6 +24,11 @@
     ],
     "description": "A starter program using the current UNX language subset"
   },
+  "GUI button": {
+    "prefix": "unxbutton",
+    "body": "button \"\u0024{1:Click me}\" say \"\u0024{2:Button clicked!}\"",
+    "description": "Add a clickable button to an open UNX window"
+  },
   "GUI window": {
     "prefix": "unxgui",
     "body": [
