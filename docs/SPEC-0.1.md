@@ -29,7 +29,7 @@ Errors include 1-based source line and column numbers. Unknown statements and ma
 
 ### Lexical and grammar rules
 
-The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, `to`, `open`, `window`, `width`, `height`, and `button`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins when the first non-whitespace character is `#`; inline comments are not currently supported. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
+The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, `to`, `open`, `window`, `width`, `height`, and `button`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins at `#` outside a string literal. Full-line and trailing inline comments are supported when `#` begins a token after whitespace; a `#` inside a quoted string is ordinary text. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
 
 Simplified line grammar (EBNF):
 
@@ -37,7 +37,8 @@ Simplified line grammar (EBNF):
 program       = { blank-line | comment-line | statement-line } ;
 blank-line    = whitespace ;
 comment-line  = whitespace, "#", { any-character-except-newline } ;
-statement-line = whitespace, statement, whitespace ;
+statement-line = whitespace, statement, [ whitespace, inline-comment ], whitespace ;
+inline-comment = "#", { any-character-except-newline } ;
 statement     = say-string | say-variable | set-string | open-window | set-window-size | button-statement ;
 open-window   = "open", space, "window", space, string ;
 set-window-size = "set", space, "window", space, ("width" | "height"), space, "to", space, string ;
