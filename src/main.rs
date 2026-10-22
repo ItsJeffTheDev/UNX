@@ -31,18 +31,25 @@ fn usage() {
 
 fn parse_quoted(input: &str) -> Option<String> {
     let s = input.trim();
-    if s.len() < 2 || !s.starts_with('"') || !s.ends_with('"') { return None; }
+    if s.len() < 2 || !s.starts_with('"') || !s.ends_with('"') {
+        return None;
+    }
+
     let inner = &s[1..s.len() - 1];
     let mut out = String::new();
     let mut chars = inner.chars();
     while let Some(c) = chars.next() {
-        if c == '\\' {
-            match chars.next()? {
-                'n' => out.push('\n'), 't' => out.push('\t'),
-                '"' => out.push('"'), '\\' => out.push('\\'),
-                other => return Some(format!("\\{other}")),
-            }
-        } else { out.push(c); }
+        match c {
+            '"' => return None,
+            '\\' => match chars.next()? {
+                'n' => out.push('\n'),
+                't' => out.push('\t'),
+                '"' => out.push('"'),
+                '\\' => out.push('\\'),
+                _ => return None,
+            },
+            other => out.push(other),
+        }
     }
     Some(out)
 }
@@ -182,6 +189,8 @@ fn command_inspect(path: &Path) -> Result<(), String> {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let result = match args.get(1).map(String::as_str) {
+        Some("--help" | "-h" | "help") if args.len() == 2 => { usage(); return; }
+        Some("--version" | "-V" | "version") if args.len() == 2 => { println!("unx {}", env!("CARGO_PKG_VERSION")); return; }
         Some("run") if args.len() == 3 => command_run(Path::new(&args[2])),
         Some("check") if args.len() == 3 => command_check(Path::new(&args[2])),
         Some("pack") if args.len() == 4 => command_pack(Path::new(&args[2]), Path::new(&args[3])),
@@ -203,6 +212,10 @@ mod tests {
     fn parses_quoted_strings_and_escapes() {
         assert_eq!(parse_quoted("\"hello\""), Some("hello".to_string()));
         assert_eq!(parse_quoted("\"a\\\\nb\""), Some("a\\nb".to_string()));
+        assert_eq!(parse_quoted("\"line\\\nnext\""), Some("line\nnext".to_string()));
+        assert_eq!(parse_quoted("\"say \\\"hi\\\"\""), Some("say \"hi\"".to_string()));
+        assert_eq!(parse_quoted("\"bad\\qescape\""), None);
+        assert_eq!(parse_quoted("\"unterminated\\\"quote\""), None);
         assert_eq!(parse_quoted("not a string"), None);
     }
 
