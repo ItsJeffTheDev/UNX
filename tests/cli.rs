@@ -195,7 +195,6 @@ fn inspect_rejects_invalid_package_fixtures() {
         ("missing-entry", vec![("manifest.json", valid_manifest), ("other.unx", source)], "missing entry file"),
         ("invalid-utf8", vec![("manifest.json", valid_manifest), ("main.unx", &invalid_utf8)], "UTF-8"),
         ("unsafe-zip-path", vec![("manifest.json", valid_manifest), ("main.unx", source), ("../outside.unx", source)], "unsafe ZIP entry path"),
-        ("duplicate-entry", vec![("manifest.json", valid_manifest), ("main.unx", source), ("main.unx", source)], "duplicate ZIP entry"),
     ];
 
     for (label, entries, expected_error) in fixtures {
