@@ -1,0 +1,74 @@
+{
+  "name": "unx-language-support",
+  "displayName": "UNX Language Support",
+  "description": "Syntax highlighting, snippets, run, and package commands for UNX .unxc source files.",
+  "version": "0.1.0",
+  "publisher": "itsjeffthedev",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:unx"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "unx",
+        "aliases": [
+          "UNX",
+          "unx"
+        ],
+        "extensions": [
+          ".unxc"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "unx",
+        "scopeName": "source.unx",
+        "path": "./syntaxes/unx.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "unx",
+        "path": "./snippets/unx.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "unx.runSource",
+        "title": "UNX: Run Current .unxc File"
+      },
+      {
+        "command": "unx.buildPackage",
+        "title": "UNX: Build .unx Package"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "unx.runSource",
+        "key": "ctrl+f5",
+        "when": "editorLangId == unx"
+      }
+    ],
+    "configuration": {
+      "title": "UNX",
+      "properties": {
+        "unx.executablePath": {
+          "type": "string",
+          "default": "unx",
+          "description": "Path to the UNX CLI executable. Use an absolute path if unx is not on PATH."
+        }
+      }
+    }
+  }
+}
