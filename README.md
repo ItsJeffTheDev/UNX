@@ -1,12 +1,14 @@
-# UNX Starter
+# UNX
 
-An experimental English-like programming language and `.unx` package format.
+An experimental, open-source English-like programming language and .unx package format, built in Rust.
 
 ## Status
 
-This is an early prototype, not a production-ready universal app platform. The `.unx` file is a ZIP-based project/deployment package, not a native installer. Windows-first support is the initial target; platform-specific installers and signing remain future work.
+UNX is an early prototype, not a production-ready universal app platform. The .unx file is a ZIP-based project/deployment package, not a native installer. Windows desktop is the first target; platform-specific installers and signing are future work.
 
-## Build
+The GitHub Actions workflow currently passes cargo build and cargo test. The language prototype supports comments, string variables, and say output. Arithmetic, functions, conditions, loops, native UI, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
+
+## Build and try
 
 Install stable Rust from https://www.rust-lang.org/tools/install, then run:
 
@@ -31,10 +33,16 @@ say "Hello from"
 say product
 ```
 
-The prototype supports comments, string variables, and `say` output. Arithmetic, functions, conditions, loops, native UI, installer generation, signing, and sandbox enforcement are not implemented.
+## Roadmap and documentation
+
+- [Full project roadmap](docs/ROADMAP.md)
+- [Language specification 0.1](docs/SPEC-0.1.md)
+- [Build and test guide](docs/BUILD-AND-TEST.md)
 
 ## Security warning
 
-Do not run `.unx` packages from untrusted sources. This is an experimental interpreter/package prototype, not a hardened sandbox. It does not yet implement resource limits, publisher signatures, dependency integrity, or a secure update mechanism.
+Do not run .unx packages from untrusted sources. This is an experimental interpreter/package prototype, not a hardened sandbox. It does not yet implement robust resource limits, publisher signatures, dependency integrity, or a secure update mechanism. Package inspection should not be treated as proof that a package is safe to execute.
 
-See `docs/SPEC-0.1.md` and `docs/BUILD-AND-TEST.md` for details. The code has not yet been verified by a successful build in this environment.
+## Contributing
+
+Contributions are welcome. Please open an issue to discuss larger changes before starting implementation, and run the build and test commands before submitting a pull request. The roadmap describes the intended sequence; features are not supported until implemented and tested.
