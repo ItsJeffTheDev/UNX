@@ -18,7 +18,8 @@ Statements:
 - `say "Hello"` prints a string.
 - `set name to "World"` creates/replaces a string variable.
 - `set copy to name` copies the current string value of an existing variable into another variable. The source must already be defined.
-- `if name equals "World" say "Hello"` prints a message only when the existing variable exactly matches the quoted string. The message may also be the name of an existing variable. This first conditional form is a single-line statement; `else` and multi-line blocks are not implemented.
+- `if name equals "World" say "Hello"` prints a message only when the existing variable exactly matches the quoted string. The message may also be the name of an existing variable.
+- Multi-line conditionals use `if name equals "World"`, an optional `else` on its own line, and a matching `end`. Blocks may be nested. Each block must have exactly one matching `end`, and at most one `else`.
 - `say name` prints a previously defined variable.
 - `open window "Title"` opens an experimental desktop window.
 - `set window width to "800"` sets the window width (200–1920 pixels).
@@ -56,9 +57,9 @@ space         = " ", { whitespace } ;
 whitespace    = " " | "\t" ;
 ```
 
-The grammar is intentionally limited: strings are the only value type, `set` accepts a string literal or the name of an existing variable rather than a general expression, and the initial `if` form supports exact string equality with a single `say` action. There is no `else` or multi-line conditional block yet. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
+The grammar is intentionally limited: strings are the only value type and `set` accepts a string literal or the name of an existing variable rather than a general expression. Conditions support exact string equality only. Multi-line blocks support nesting, optional `else`, and a required `end`; they do not yet support compound conditions, Boolean operators, or expressions. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
-Future syntax such as numbers, arithmetic, `else`, multi-line conditional blocks, loops, and functions requires a language-versioned design and parser tests before it becomes part of the supported language.
+Future syntax such as numbers, arithmetic, loops, and functions requires a language-versioned design and parser tests before it becomes part of the supported language.
 
 ## Manifest v1
 
