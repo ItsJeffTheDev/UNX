@@ -18,7 +18,7 @@ The commands use the UNX CLI executable. If unx is not on PATH, set the UNX: Exe
 - UNX: Run Current .unxc File (Ctrl+F5 on Windows/Linux) runs the active saved source through the current interpreter.
 - UNX: Build .unx Package runs the CLI pack command on the workspace root. The root must contain manifest.json and the entry file named by manifest.entry. The package is written to build/<workspace-name>.unx.
 
-The current interpreter supports comments, string variables, and say output only. The package command bundles the manifest and one entry source file; it does not compile to native machine code or produce native installers. Cross-platform runtimes and installers remain future work.
+The interpreter supports comments, string variables, say output, and an experimental basic desktop window (`open window`, `set window width/height`). GUI output is text-only for now; buttons and input controls are not implemented yet. The package command bundles the manifest and one entry source file; it does not compile to native machine code or produce native installers. Cross-platform runtimes and installers remain future work.
 
 ## UNX file icons
 
