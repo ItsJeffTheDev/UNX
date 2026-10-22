@@ -1,0 +1,17 @@
+{
+  "$schema": "vscode://schemas/icon-theme",
+  "id": "unx-file-icons",
+  "label": "UNX File Icons",
+  "iconDefinitions": {
+    "_unxc": {
+      "iconPath": "./unxc.svg"
+    },
+    "_unx": {
+      "iconPath": "./unx.svg"
+    }
+  },
+  "fileExtensions": {
+    "unxc": "_unxc",
+    "unx": "_unx"
+  }
+}
