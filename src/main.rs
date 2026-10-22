@@ -623,6 +623,40 @@ mod tests {
     }
 
     #[test]
+    fn package_reader_rejects_unexpected_archive_entries() {
+        let dir = unique_temp_dir("unexpected-entry");
+        let package = dir.join("extra.unx");
+        let file = File::create(&package).unwrap();
+        let mut archive = zip::ZipWriter::new(file);
+        let options = zip::write::SimpleFileOptions::default();
+        archive.start_file(MANIFEST_NAME, options).unwrap();
+        archive.write_all(br#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test","version":"0.1.0","entry":"main.unx","permissions":[]}"#).unwrap();
+        archive.start_file("main.unx", options).unwrap();
+        archive.write_all(b"say \"hi\"").unwrap();
+        archive.start_file("extra.txt", options).unwrap();
+        archive.write_all(b"unexpected").unwrap();
+        archive.finish().unwrap();
+
+        let error = load_package(&package).unwrap_err();
+        assert!(error.contains("exactly manifest.json and one entry source file"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn manifest_cannot_use_metadata_filename_as_entry_source() {
+        let manifest = Manifest {
+            format: "UNX".into(),
+            format_version: 1,
+            id: "org.example.test".into(),
+            name: "Test".into(),
+            version: "0.1.0".into(),
+            entry: MANIFEST_NAME.into(),
+            permissions: vec![],
+        };
+        assert!(validate_manifest(&manifest).unwrap_err().contains("unsafe entry path"));
+    }
+
+    #[test]
     fn rejects_unsupported_manifest_format_and_version() {
         let mut manifest = Manifest {
             format: "OTHER".into(),
