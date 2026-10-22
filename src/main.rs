@@ -64,6 +64,7 @@ enum Statement {
     SayVariable { name: String, line: usize, column: usize },
     SetString { name: String, value: String, line: usize, column: usize },
     SetVariable { name: String, source: String, line: usize, column: usize },
+    IfEqualsSay { variable: String, expected: String, message: ConditionalMessage, line: usize, column: usize },
     OpenWindow { title: String, line: usize, column: usize },
     SetWindowWidth { value: String, line: usize, column: usize },
     SetWindowHeight { value: String, line: usize, column: usize },
@@ -72,9 +73,17 @@ enum Statement {
 }
 
 #[derive(Debug, PartialEq)]
+enum ConditionalMessage {
+    String(String),
+    Variable(String),
+}
+
+#[derive(Debug, PartialEq)]
 enum TokenKind {
     Say,
     Set,
+    If,
+    Equals,
     To,
     Open,
     Window,
@@ -148,6 +157,8 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
         let kind = match word {
             "say" => TokenKind::Say,
             "set" => TokenKind::Set,
+            "if" => TokenKind::If,
+            "equals" => TokenKind::Equals,
             "to" => TokenKind::To,
             "open" => TokenKind::Open,
             "window" => TokenKind::Window,
@@ -181,6 +192,25 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
         let tokens = tokenize_line(trimmed, line_no, base_column)?;
         let Some(first) = tokens.first() else { continue; };
         match &first.kind {
+            TokenKind::If => {
+                if tokens.len() != 6 || tokens[2].kind != TokenKind::Equals || tokens[4].kind != TokenKind::Say {
+                    return Err(format!("line {line_no}, column {}: expected 'if VARIABLE equals \"VALUE\" say \"MESSAGE\"' or a message variable", first.column));
+                }
+                let variable = match &tokens[1].kind {
+                    TokenKind::Identifier(name) if is_valid_identifier(name) => name.clone(),
+                    _ => return Err(format!("line {line_no}, column {}: expected a variable name after 'if'", tokens[1].column)),
+                };
+                let expected = match &tokens[3].kind {
+                    TokenKind::String(value) => value.clone(),
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted comparison value after 'equals'", tokens[3].column)),
+                };
+                let message = match &tokens[5].kind {
+                    TokenKind::String(value) => ConditionalMessage::String(value.clone()),
+                    TokenKind::Identifier(name) if is_valid_identifier(name) => ConditionalMessage::Variable(name.clone()),
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted message or variable name after 'say'", tokens[5].column)),
+                };
+                statements.push(Statement::IfEqualsSay { variable, expected, message, line: line_no, column: first.column });
+            }
             TokenKind::Button => {
                 if tokens.len() != 4 || tokens[2].kind != TokenKind::Say {
                     return Err(format!("line {line_no}, column {}: expected 'button \"LABEL\" say \"MESSAGE\"'", first.column));
@@ -304,6 +334,24 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
                     format!("line {line}, column {column}: undefined variable '{source}'")
                 })?;
                 vars.insert(name.clone(), value);
+            }
+            Statement::IfEqualsSay { variable, expected, message, line, column } => {
+                let actual = vars.get(variable).ok_or_else(|| {
+                    format!("line {line}, column {column}: undefined variable '{variable}'")
+                })?;
+                if actual == expected {
+                    let output = match message {
+                        ConditionalMessage::String(value) => value.clone(),
+                        ConditionalMessage::Variable(name) => vars.get(name).cloned().ok_or_else(|| {
+                            format!("line {line}, column {column}: undefined variable '{name}'")
+                        })?,
+                    };
+                    if window_title.is_some() {
+                        window_lines.push(output);
+                    } else if print_output {
+                        println!("{output}");
+                    }
+                }
             }
             Statement::OpenWindow { title, .. } => window_title = Some(title.clone()),
             Statement::Button { label, message, line, column } => {
@@ -657,6 +705,25 @@ mod tests {
         assert_eq!(program[0], Statement::SetString { name: "name".into(), value: "UNX".into(), line: 2, column: 1 });
         assert_eq!(program[1], Statement::SayVariable { name: "name".into(), line: 3, column: 1 });
         assert_eq!(program[2], Statement::SayString { value: "hello".into(), line: 4, column: 1 });
+    }
+
+    #[test]
+    fn parses_if_equals_statement() {
+        let program = parse_program("set name to \"UNX\"\nif name equals \"UNX\" say \"matched\"").unwrap();
+        assert_eq!(program[1], Statement::IfEqualsSay {
+            variable: "name".into(),
+            expected: "UNX".into(),
+            message: ConditionalMessage::String("matched".into()),
+            line: 2,
+            column: 1,
+        });
+        assert!(execute_program(&program, false).is_ok());
+    }
+
+    #[test]
+    fn if_equals_rejects_undefined_condition_variable() {
+        let program = parse_program("if missing equals \"UNX\" say \"matched\"").unwrap();
+        assert!(execute_program(&program, false).unwrap_err().contains("undefined variable 'missing'"));
     }
 
     #[test]
