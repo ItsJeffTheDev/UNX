@@ -266,6 +266,22 @@ mod tests {
     }
 
     #[test]
+    fn parser_builds_statements_with_source_lines() {
+        let program = parse_program("# comment\nset name to \"UNX\"\nsay name\nsay \"hello\"").unwrap();
+        assert_eq!(program.len(), 3);
+        assert_eq!(program[0], Statement::SetString { name: "name".into(), value: "UNX".into(), line: 2 });
+        assert_eq!(program[1], Statement::SayVariable { name: "name".into(), line: 3 });
+        assert_eq!(program[2], Statement::SayString { value: "hello".into(), line: 4 });
+    }
+
+    #[test]
+    fn parser_rejects_invalid_string_escape_with_line_number() {
+        let error = parse_program("say \"ok\"\nset name to \"bad\\qescape\"").unwrap_err();
+        assert!(error.contains("line 2"));
+        assert!(error.contains("valid quoted string"));
+    }
+
+    #[test]
     fn accepts_basic_program() {
         let source = "set name to \"UNX\"\nsay \"Hello\"\nsay name\n";
         assert!(validate_and_execute(source, false).is_ok());
