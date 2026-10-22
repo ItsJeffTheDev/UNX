@@ -96,6 +96,9 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
     while offset < line.len() {
         let rest = &line[offset..];
         let first = rest.chars().next().expect("offset is within line");
+        if first == '#' {
+            break;
+        }
         if first == ' ' || first == '\t' {
             offset += first.len_utf8();
             continue;
@@ -694,6 +697,15 @@ mod tests {
 
         let punctuation = parse_program("say name!").unwrap_err();
         assert!(punctuation.contains("unexpected token"));
+    }
+
+    #[test]
+    fn parser_accepts_inline_comments_but_preserves_hashes_in_strings() {
+        let program = parse_program("say \"hello\" # trailing comment\nsay \"value # not a comment\"").unwrap();
+        assert_eq!(program, vec![
+            Statement::SayString { value: "hello".into(), line: 1, column: 1 },
+            Statement::SayString { value: "value # not a comment".into(), line: 2, column: 1 },
+        ]);
     }
 
     #[test]
