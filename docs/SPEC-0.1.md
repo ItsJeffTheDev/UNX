@@ -21,13 +21,14 @@ Statements:
 - `open window "Title"` opens an experimental desktop window.
 - `set window width to "800"` sets the window width (200–1920 pixels).
 - `set window height to "500"` sets the window height (150–1200 pixels).
+- `button "Click me" say "Clicked!"` adds a clickable button to an open window. Clicking it displays the associated message in the window status area.
 - When a window is opened, subsequent `say` statements are rendered as text in that window. Press Escape to close it.
 
 Errors include 1-based source line and column numbers. Unknown statements and malformed tokens fail closed. This grammar describes the current 0.1 subset only; it is not a promise that future syntax is already implemented.
 
 ### Lexical and grammar rules
 
-The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, `to`, `open`, `window`, `width`, and `height`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins when the first non-whitespace character is `#`; inline comments are not currently supported. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
+The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, `to`, `open`, `window`, `width`, `height`, and `button`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins when the first non-whitespace character is `#`; inline comments are not currently supported. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
 
 Simplified line grammar (EBNF):
 
@@ -36,9 +37,10 @@ program       = { blank-line | comment-line | statement-line } ;
 blank-line    = whitespace ;
 comment-line  = whitespace, "#", { any-character-except-newline } ;
 statement-line = whitespace, statement, whitespace ;
-statement     = say-string | say-variable | set-string | open-window | set-window-size ;
+statement     = say-string | say-variable | set-string | open-window | set-window-size | button-statement ;
 open-window   = "open", space, "window", space, string ;
 set-window-size = "set", space, "window", space, ("width" | "height"), space, "to", space, string ;
+button-statement = "button", space, string, space, "say", space, string ;
 say-string    = "say", space, string ;
 say-variable  = "say", space, identifier ;
 set-string    = "set", space, identifier, space, "to", space, string ;
@@ -49,7 +51,7 @@ space         = " ", { whitespace } ;
 whitespace    = " " | "\t" ;
 ```
 
-The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. GUI statements are experimental and currently create one basic desktop window with text only; they do not yet provide buttons, text inputs, or portable platform-independent widgets. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
+The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
 Future syntax such as numbers, arithmetic, conditions, loops, functions, inline comments, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
 
