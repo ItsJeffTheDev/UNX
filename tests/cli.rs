@@ -118,3 +118,49 @@ fn pack_rejects_invalid_source_without_creating_package() {
 
     fs::remove_dir_all(dir).unwrap();
 }
+
+
+#[test]
+fn help_and_version_are_available() {
+    let help = unx(&["--help"]);
+    assert!(help.status.success(), "{}", text(&help.stderr));
+    assert!(text(&help.stderr).contains("Usage:"));
+
+    let version = unx(&["--version"]);
+    assert!(version.status.success(), "{}", text(&version.stderr));
+    assert!(text(&version.stdout).contains("unx 0.1.0"));
+}
+
+#[test]
+fn pack_rejects_parent_traversal_entry_paths() {
+    let dir = temp_dir("traversal");
+    let project = dir.join("project");
+    fs::create_dir_all(&project).unwrap();
+    let manifest = r#"{"format":"UNX","format_version":1,"id":"org.example.bad","name":"Bad App","version":"0.1.0","entry":"../outside.unx","permissions":[]}"#;
+    fs::write(project.join("manifest.json"), manifest).unwrap();
+    let package = dir.join("bad.unx");
+
+    let result = unx(&[
+        "pack",
+        project.to_str().unwrap(),
+        package.to_str().unwrap(),
+    ]);
+    assert!(!result.status.success());
+    assert!(text(&result.stderr).contains("unsafe entry path"));
+    assert!(!package.exists());
+
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn inspect_rejects_non_zip_input_without_panicking() {
+    let dir = temp_dir("malformed-zip");
+    let package = dir.join("broken.unx");
+    fs::write(&package, b"not a zip archive").unwrap();
+
+    let result = unx(&["inspect", package.to_str().unwrap()]);
+    assert!(!result.status.success());
+    assert!(text(&result.stderr).contains("invalid ZIP package"));
+
+    fs::remove_dir_all(dir).unwrap();
+}
