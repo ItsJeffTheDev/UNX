@@ -225,7 +225,12 @@ fn validate_and_execute(source: &str, print_output: bool) -> Result<(), String> 
 }
 
 fn is_safe_package_path(value: &str) -> bool {
-    if value.is_empty() || value.starts_with('/') || value.contains(':') || value.bytes().any(|b| b == 92) {
+    if value.is_empty()
+        || value.starts_with('/')
+        || value.contains(':')
+        || value.bytes().any(|b| b == 92)
+        || value.chars().any(char::is_control)
+    {
         return false;
     }
     value.split('/').all(|part| !part.is_empty() && part != "." && part != "..")
@@ -494,7 +499,7 @@ mod tests {
 
     #[test]
     fn rejects_unsafe_package_paths() {
-        for path in ["", "../main.unx", "src/../main.unx", "/etc/passwd", "//server/share", "src\\\\main.unx", "C:/Windows/file", ".", "src//main.unx"] {
+        for path in ["", "../main.unx", "src/../main.unx", "/etc/passwd", "//server/share", "src\\\\main.unx", "C:/Windows/file", ".", "src//main.unx", "main\\n.unx", "main\\0.unx"] {
             assert!(!is_safe_package_path(path), "expected unsafe path to be rejected: {path}");
         }
     }
