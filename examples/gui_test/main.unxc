@@ -7,5 +7,6 @@ say "Welcome to UNX!"
 say "This window was created by a .unxc script."
 say "Press ESC to close the window."
 
-button "Say hello" say "Hello from a clicked UNX button!"
+set greeting to "Hello from a clicked UNX button!"
+button "Say hello" say greeting
 button "About UNX" say "UNX GUI buttons are experimental."
