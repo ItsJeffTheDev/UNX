@@ -1,8 +1,8 @@
 {
   "name": "unx-language-support",
-  "displayName": "UNX Language Support",
-  "description": "Syntax highlighting, snippets, run, and package commands for UNX .unxc source files.",
-  "version": "0.1.0",
+  "displayName": "UNX Language Support (Alpha)",
+  "description": "UNX Alpha 0.0.1: syntax highlighting, snippets, run, and package commands for .unxc source files.",
+  "version": "0.0.1",
   "publisher": "itsjeffthedev",
   "license": "MIT",
   "engines": {
@@ -70,5 +70,6 @@
         }
       }
     }
-  }
+  },
+  "preview": true
 }
