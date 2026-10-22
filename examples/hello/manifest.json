@@ -4,6 +4,6 @@
   "id": "org.example.hello",
   "name": "Hello UNX",
   "version": "0.1.0",
-  "entry": "main.unx",
+  "entry": "main.unxc",
   "permissions": []
 }
