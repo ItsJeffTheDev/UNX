@@ -192,7 +192,7 @@ fn inspect_rejects_invalid_package_fixtures() {
         ("missing-manifest", vec![("main.unx", source)], "missing manifest.json"),
         ("invalid-json", vec![("manifest.json", invalid_json), ("main.unx", source)], "invalid manifest"),
         ("unsupported-version", vec![("manifest.json", unsupported_manifest), ("main.unx", source)], "unsupported UNX package format/version"),
-        ("missing-entry", vec![("manifest.json", valid_manifest)], "missing entry file"),
+        ("missing-entry", vec![("manifest.json", valid_manifest), ("other.unx", source)], "missing entry file"),
         ("invalid-utf8", vec![("manifest.json", valid_manifest), ("main.unx", &invalid_utf8)], "UTF-8"),
     ];
 
