@@ -25,7 +25,7 @@ The repository contains a Rust CLI/interpreter prototype, draft language specifi
 
 Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, nested multi-line exact-string `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
 
-Not yet implemented: committed Cargo.lock, broad package regression tests, mature parser/value model, arithmetic and control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. The current interpreter is not a hardened sandbox.
+Not yet implemented: committed Cargo.lock, locked builds, full CI formatting/lint gates, mature parser/value model, arithmetic and control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. CLI integration tests now cover source validation, direct execution, pack → inspect → run, invalid source rejection, path traversal, malformed ZIPs, missing/invalid manifests, unsupported package versions, missing entry files, and invalid UTF-8. The current interpreter is not a hardened sandbox.
 
 ---
 
@@ -49,10 +49,10 @@ Tasks:
 **Goal:** Make current commands predictable before expanding the language.
 
 Tasks:
-- [ ] Add integration tests for run, check, pack, and inspect.
-- [ ] Test pack → inspect → run end to end.
-- [ ] Test malformed ZIPs, missing manifests, invalid JSON, missing entry files, invalid UTF-8, and unsupported manifest versions.
-- [ ] Validate package paths by components; reject absolute paths and parent traversal without rejecting harmless filenames just because they contain two dots.
+- [x] Add integration tests for run, check, pack, and inspect.
+- [x] Test pack → inspect → run end to end.
+- [x] Test malformed ZIPs, missing manifests, invalid JSON, missing entry files, invalid UTF-8, and unsupported manifest versions.
+- [x] Validate package paths by components; reject absolute paths and parent traversal without rejecting harmless filenames just because they contain two dots.
 - [ ] Set sensible limits for manifest/source size, file count, and total package content.
 - [ ] Make package output deterministic where practical.
 - [ ] Return clear diagnostics and non-zero exit codes on errors.
