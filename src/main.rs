@@ -63,6 +63,7 @@ enum Statement {
     SayString { value: String, line: usize, column: usize },
     SayVariable { name: String, line: usize, column: usize },
     SetString { name: String, value: String, line: usize, column: usize },
+    SetVariable { name: String, source: String, line: usize, column: usize },
     OpenWindow { title: String, line: usize, column: usize },
     SetWindowWidth { value: String, line: usize, column: usize },
     SetWindowHeight { value: String, line: usize, column: usize },
@@ -252,13 +253,16 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                 if tokens[2].kind != TokenKind::To {
                     return Err(format!("line {line_no}, column {}: expected keyword 'to'", tokens[2].column));
                 }
-                let value = match &tokens[3].kind {
-                    TokenKind::String(value) => value,
-                    _ => return Err(format!("line {line_no}, column {}: expected a quoted string after 'to'", tokens[3].column)),
-                };
-                statements.push(Statement::SetString {
-                    name: name.clone(), value: value.clone(), line: line_no, column: first.column,
-                });
+                match &tokens[3].kind {
+                    TokenKind::String(value) => statements.push(Statement::SetString {
+                        name: name.clone(), value: value.clone(), line: line_no, column: first.column,
+                    }),
+                    TokenKind::Identifier(source) if is_valid_identifier(source) => statements.push(Statement::SetVariable {
+                        name: name.clone(), source: source.clone(), line: line_no, column: first.column,
+                    }),
+                    TokenKind::Identifier(_) => return Err(format!("line {line_no}, column {}: invalid source variable name", tokens[3].column)),
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted string or variable name after 'to'", tokens[3].column)),
+                }
             }
             _ => return Err(format!("line {line_no}, column {}: unknown statement", first.column)),
         }
@@ -294,6 +298,12 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
             }
             Statement::SetString { name, value, .. } => {
                 vars.insert(name.clone(), value.clone());
+            }
+            Statement::SetVariable { name, source, line, column } => {
+                let value = vars.get(source).cloned().ok_or_else(|| {
+                    format!("line {line}, column {column}: undefined variable '{source}'")
+                })?;
+                vars.insert(name.clone(), value);
             }
             Statement::OpenWindow { title, .. } => window_title = Some(title.clone()),
             Statement::Button { label, message, line, column } => {
@@ -647,6 +657,21 @@ mod tests {
         assert_eq!(program[0], Statement::SetString { name: "name".into(), value: "UNX".into(), line: 2, column: 1 });
         assert_eq!(program[1], Statement::SayVariable { name: "name".into(), line: 3, column: 1 });
         assert_eq!(program[2], Statement::SayString { value: "hello".into(), line: 4, column: 1 });
+    }
+
+    #[test]
+    fn set_can_copy_an_existing_variable() {
+        let program = parse_program("set original to \"UNX\"\nset copy to original\nsay copy").unwrap();
+        assert_eq!(program[1], Statement::SetVariable {
+            name: "copy".into(), source: "original".into(), line: 2, column: 1,
+        });
+        assert!(execute_program(&program, false).is_ok());
+    }
+
+    #[test]
+    fn set_rejects_undefined_source_variable() {
+        let program = parse_program("set copy to missing").unwrap();
+        assert!(execute_program(&program, false).unwrap_err().contains("undefined variable 'missing'"));
     }
 
     #[test]
