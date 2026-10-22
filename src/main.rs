@@ -258,10 +258,6 @@ fn load_package(path: &Path) -> Result<(Manifest, String), String> {
     }
     let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("invalid ZIP package: {e}"))?;
-    if archive.len() != MAX_PACKAGE_ENTRIES {
-        return Err("package must contain exactly manifest.json and one entry source file".into());
-    }
-
     let mut names = std::collections::HashSet::new();
     for index in 0..archive.len() {
         let entry = archive.by_index(index).map_err(|e| format!("invalid ZIP entry: {e}"))?;
@@ -283,6 +279,10 @@ fn load_package(path: &Path) -> Result<(Manifest, String), String> {
     }
     if !names.contains(MANIFEST_NAME) {
         return Err("package is missing manifest.json".into());
+    }
+
+    if names.len() != MAX_PACKAGE_ENTRIES {
+        return Err("package must contain exactly manifest.json and one entry source file".into());
     }
 
     let manifest: Manifest = {
