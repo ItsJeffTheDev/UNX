@@ -6,7 +6,7 @@ An experimental, open-source English-like programming language with editable `.u
 
 UNX is an early prototype, not a production-ready universal app platform. The `.unxc` file is editable source code. The `.unx` file is currently a ZIP-based source/deployment package, not a native installer or a universal executable yet. Windows desktop is the first target; platform-specific installers and signing are future work.
 
-The GitHub Actions workflow currently passes cargo build and cargo test. The language prototype supports comments, string variables, and say output. Arithmetic, functions, conditions, loops, native UI, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
+The language prototype supports comments, string variables, say output, and an experimental desktop window statement. The first GUI runtime uses a simple pixel-rendered window with text and an Escape-to-close loop. It is an early prototype, not a full widget toolkit; buttons, inputs, layout containers, event handlers, arithmetic, functions, conditions, loops, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
 
 ## Build and try
 
@@ -18,13 +18,14 @@ cargo test
 cargo run -- --help
 cargo run -- --version
 cargo run -- run .\examples\hello\main.unx
+cargo run -- run .\examples\gui_test\main.unxc
 cargo run -- check .\examples\hello\main.unx
 cargo run -- pack .\examples\hello .\Hello.unx
 cargo run -- inspect .\Hello.unx
 cargo run -- run .\Hello.unx
 ```
 
-Expected sample output includes `Hello from` and `UNX`.
+The GUI smoke test should open an 800×500 window. Press `Esc` to close it. The first GUI test is `examples/gui_test/main.unxc`.
 
 ## Example language
 
