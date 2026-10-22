@@ -21,13 +21,9 @@ struct Manifest {
 }
 
 fn usage() {
-    eprintln!("UNX prototype 0.1\n\\
-Usage:\n\\
-  unx run <source.unx|package.unx>\n\\
-  unx check <source.unx>\n\\
-  unx pack <project-directory> <output.unx>\n\\
-  unx inspect <package.unx>\n\\
-\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, # comment");
+    eprintln!(
+        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, # comment"
+    );
 }
 
 fn parse_quoted(input: &str) -> Option<String> {
@@ -165,5 +161,36 @@ fn main() {
     if let Err(error) = result {
         eprintln!("unx: {error}");
         std::process::exit(1);
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_quoted_strings_and_escapes() {
+        assert_eq!(parse_quoted("\"hello\""), Some("hello".to_string()));
+        assert_eq!(parse_quoted("\"a\\\\nb\""), Some("a\\nb".to_string()));
+        assert_eq!(parse_quoted("not a string"), None);
+    }
+
+    #[test]
+    fn accepts_basic_program() {
+        let source = "set name to \"UNX\"\nsay \"Hello\"\nsay name\n";
+        assert!(validate_and_execute(source, false).is_ok());
+    }
+
+    #[test]
+    fn rejects_unknown_statement_with_line_number() {
+        let error = validate_and_execute("say \"ok\"\nlaunch rocket", false).unwrap_err();
+        assert!(error.contains("line 2"));
+    }
+
+    #[test]
+    fn rejects_undefined_variable() {
+        let error = validate_and_execute("say missing", false).unwrap_err();
+        assert!(error.contains("line 1"));
     }
 }
