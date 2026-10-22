@@ -56,51 +56,56 @@ fn parse_quoted(input: &str) -> Option<String> {
 
 #[derive(Debug, PartialEq)]
 enum Statement {
-    SayString { value: String, line: usize },
-    SayVariable { name: String, line: usize },
-    SetString { name: String, value: String, line: usize },
+    SayString { value: String, line: usize, column: usize },
+    SayVariable { name: String, line: usize, column: usize },
+    SetString { name: String, value: String, line: usize, column: usize },
 }
 
 fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
     let mut statements = Vec::new();
     for (index, raw) in source.lines().enumerate() {
         let line_no = index + 1;
+        let leading_bytes = raw.len() - raw.trim_start().len();
         let line = raw.trim();
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
+        let statement_column = raw[..leading_bytes].chars().count() + 1;
 
         if let Some(rest) = line.strip_prefix("say ") {
+            let operand_column = statement_column + 4;
             if let Some(value) = parse_quoted(rest) {
-                statements.push(Statement::SayString { value, line: line_no });
+                statements.push(Statement::SayString { value, line: line_no, column: statement_column });
             } else {
                 let name = rest.trim();
                 if name.is_empty() || !name.chars().enumerate().all(|(i, c)| {
                     c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
                 }) {
-                    return Err(format!("line {line_no}: expected a quoted string or variable name after 'say'"));
+                    return Err(format!("line {line_no}, column {operand_column}: expected a quoted string or variable name after 'say'"));
                 }
-                statements.push(Statement::SayVariable { name: name.to_string(), line: line_no });
+                statements.push(Statement::SayVariable { name: name.to_string(), line: line_no, column: statement_column });
             }
             continue;
         }
 
         if let Some(rest) = line.strip_prefix("set ") {
+            let name_column = statement_column + 4;
             let (name, value_expr) = rest.split_once(" to ")
-                .ok_or_else(|| format!("line {line_no}: expected 'set NAME to VALUE'"))?;
+                .ok_or_else(|| format!("line {line_no}, column {name_column}: expected 'set NAME to VALUE'"))?;
             let name = name.trim();
             if name.is_empty() || !name.chars().enumerate().all(|(i, c)| {
                 c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
             }) {
-                return Err(format!("line {line_no}: invalid variable name '{name}'"));
+                return Err(format!("line {line_no}, column {name_column}: invalid variable name '{name}'"));
             }
+            let value_column = line.find(" to ").map(|i| i + 5).unwrap_or(line.len()) + statement_column;
             let value = parse_quoted(value_expr)
-                .ok_or_else(|| format!("line {line_no}: expected a valid quoted string after 'to'"))?;
-            statements.push(Statement::SetString { name: name.to_string(), value, line: line_no });
+                .ok_or_else(|| format!("line {line_no}, column {value_column}: expected a valid quoted string after 'to'"))?;
+            statements.push(Statement::SetString { name: name.to_string(), value, line: line_no, column: statement_column });
             continue;
         }
 
-        return Err(format!("line {line_no}: unknown statement"));
+        return Err(format!("line {line_no}, column {statement_column}: unknown statement"));
     }
     Ok(statements)
 }
@@ -112,9 +117,9 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
             Statement::SayString { value, .. } => {
                 if print_output { println!("{value}"); }
             }
-            Statement::SayVariable { name, line } => {
+            Statement::SayVariable { name, line, column } => {
                 let value = vars.get(name)
-                    .ok_or_else(|| format!("line {line}: undefined variable '{name}'"))?;
+                    .ok_or_else(|| format!("line {line}, column {column}: undefined variable '{name}'"))?;
                 if print_output { println!("{value}"); }
             }
             Statement::SetString { name, value, .. } => {
@@ -269,15 +274,15 @@ mod tests {
     fn parser_builds_statements_with_source_lines() {
         let program = parse_program("# comment\nset name to \"UNX\"\nsay name\nsay \"hello\"").unwrap();
         assert_eq!(program.len(), 3);
-        assert_eq!(program[0], Statement::SetString { name: "name".into(), value: "UNX".into(), line: 2 });
-        assert_eq!(program[1], Statement::SayVariable { name: "name".into(), line: 3 });
-        assert_eq!(program[2], Statement::SayString { value: "hello".into(), line: 4 });
+        assert_eq!(program[0], Statement::SetString { name: "name".into(), value: "UNX".into(), line: 2, column: 1 });
+        assert_eq!(program[1], Statement::SayVariable { name: "name".into(), line: 3, column: 1 });
+        assert_eq!(program[2], Statement::SayString { value: "hello".into(), line: 4, column: 1 });
     }
 
     #[test]
     fn parser_rejects_invalid_string_escape_with_line_number() {
         let error = parse_program("say \"ok\"\nset name to \"bad\\qescape\"").unwrap_err();
-        assert!(error.contains("line 2"));
+        assert!(error.contains("line 2, column"));
         assert!(error.contains("valid quoted string"));
     }
 
@@ -294,9 +299,18 @@ mod tests {
     }
 
     #[test]
-    fn rejects_undefined_variable() {
-        let error = validate_and_execute("say missing", false).unwrap_err();
-        assert!(error.contains("line 1"));
+    fn rejects_undefined_variable_with_column() {
+        let error = validate_and_execute("  say missing", false).unwrap_err();
+        assert!(error.contains("line 1, column 3"));
+        assert!(error.contains("undefined variable"));
+    }
+
+    #[test]
+    fn reports_column_for_unknown_statement_and_invalid_identifier() {
+        let unknown = parse_program("   launch rocket").unwrap_err();
+        assert!(unknown.contains("line 1, column 4"));
+        let invalid_name = parse_program("set 9name to \"nope\"").unwrap_err();
+        assert!(invalid_name.contains("line 1, column 5"));
     }
 
     #[test]
