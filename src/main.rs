@@ -88,7 +88,7 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
         }
         let column = base_column + line[..offset].chars().count();
         if first == '"' {
-            let mut cursor = offset + 1;
+            let cursor = offset + 1;
             let mut escaped = false;
             let mut closing = None;
             for (relative, ch) in line[cursor..].char_indices() {
