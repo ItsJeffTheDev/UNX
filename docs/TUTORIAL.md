@@ -54,12 +54,20 @@ Store and print a value:
     set language to "UNX"
     say language
 
+Copy a value and test it:
+
+    set language to "UNX"
+    set copied_language to language
+    if copied_language equals "UNX" say "The value matches!"
+
+The `if` statement compares a previously defined variable with an exact quoted string. Its single-line `say` action runs only when the values match. The message after `say` can be a quoted string or an existing variable name. If the condition is false, execution continues with the next line.
+
 Comments:
 
     # This is ignored by the current interpreter
     say "Comments start with a number sign"
 
-String literals use double quotes. Supported escapes include backslash-n for newline, backslash-t for tab, escaped quote, and escaped backslash. Keywords are lowercase and case-sensitive. The prototype does not yet support arithmetic, conditions, loops, functions, buttons, screens, or networking.
+String literals use double quotes. Supported escapes include backslash-n for newline, backslash-t for tab, escaped quote, and escaped backslash. Keywords are lowercase and case-sensitive. The prototype supports single-line exact-string conditions. It does not yet support arithmetic, `else`, multi-line conditional blocks, loops, functions, or networking. GUI buttons and windows are experimental.
 
 ## 5. Build a distributable package
 
