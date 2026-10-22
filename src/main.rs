@@ -360,6 +360,21 @@ mod tests {
     }
 
     #[test]
+    fn tokenizer_preserves_unicode_inside_string_literals() {
+        let tokens = tokenize_line("say \"Hello 🌳 世界\"", 1, 1).unwrap();
+        assert_eq!(tokens.len(), 2);
+        assert_eq!(tokens[1].kind, TokenKind::String("Hello 🌳 世界".into()));
+    }
+
+    #[test]
+    fn parser_keeps_unicode_string_values_in_ast() {
+        let program = parse_program("say \"こんにちは 🌳\"").unwrap();
+        assert_eq!(program, vec![Statement::SayString {
+            value: "こんにちは 🌳".into(), line: 1, column: 1,
+        }]);
+    }
+
+    #[test]
     fn tokenizer_recognizes_keywords_identifiers_and_strings() {
         let tokens = tokenize_line("set name to \"UNX\"", 1, 1).unwrap();
         assert_eq!(tokens.len(), 4);
