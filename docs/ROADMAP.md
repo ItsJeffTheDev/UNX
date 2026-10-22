@@ -21,7 +21,7 @@ Principles:
 
 ## Current baseline
 
-The repository contains a Rust CLI/interpreter prototype, draft language specification, sample program, ZIP-based .unx package implementation, MIT license, and GitHub Actions workflow. As checked on 2026-10-22, GitHub Actions successfully completed cargo build and cargo test.
+The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-22, GitHub Actions successfully completed cargo build and cargo test.
 
 Implemented today: comments, string variables, say output, and the run, check, pack, and inspect commands.
 
