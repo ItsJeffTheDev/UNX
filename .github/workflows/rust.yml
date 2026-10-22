@@ -19,6 +19,6 @@ jobs:
       - name: Install stable Rust
         uses: dtolnay/rust-toolchain@stable
       - name: Build
-        run: cargo build --locked
+        run: cargo build
       - name: Run tests
-        run: cargo test --locked
+        run: cargo test
