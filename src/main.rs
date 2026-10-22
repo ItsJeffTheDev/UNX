@@ -148,7 +148,7 @@ fn command_pack(project: &Path, output: &Path) -> Result<(), String> {
     let manifest: Manifest = serde_json::from_str(&manifest_text).map_err(|e| format!("invalid manifest JSON: {e}"))?;
     validate_manifest(&manifest)?;
     let source_path = project.join(&manifest.entry);
-    let source_metadata = fs::metadata(&source_path).map_err(|e| format!("cannot read entry {}: {e}", source_path.display()))?;
+    let source_metadata = fs::symlink_metadata(&source_path).map_err(|e| format!("cannot read entry {}: {e}", source_path.display()))?;
     if !source_metadata.is_file() {
         return Err("manifest entry must refer to a file".into());
     }
