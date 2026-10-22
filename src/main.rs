@@ -824,6 +824,12 @@ mod tests {
     }
 
     #[test]
+    fn conditions_example_parses_and_validates() {
+        let source = include_str!("../examples/conditions/main.unxc");
+        assert!(validate_and_execute(source, false).is_ok());
+    }
+
+    #[test]
     fn multiline_if_runs_only_the_matching_branch() {
         let true_program = parse_program(
             "set name to \"UNX\"\nif name equals \"UNX\"\n  say missing\nelse\n  say \"not matched\"\nend"
