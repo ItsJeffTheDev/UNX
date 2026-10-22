@@ -18,6 +18,7 @@ Statements:
 - `say "Hello"` prints a string.
 - `set name to "World"` creates/replaces a string variable.
 - `set copy to name` copies the current string value of an existing variable into another variable. The source must already be defined.
+- `if name equals "World" say "Hello"` prints a message only when the existing variable exactly matches the quoted string. The message may also be the name of an existing variable. This first conditional form is a single-line statement; `else` and multi-line blocks are not implemented.
 - `say name` prints a previously defined variable.
 - `open window "Title"` opens an experimental desktop window.
 - `set window width to "800"` sets the window width (200–1920 pixels).
@@ -40,7 +41,8 @@ blank-line    = whitespace ;
 comment-line  = whitespace, "#", { any-character-except-newline } ;
 statement-line = whitespace, statement, [ whitespace, inline-comment ], whitespace ;
 inline-comment = "#", { any-character-except-newline } ;
-statement     = say-string | say-variable | set-string | open-window | set-window-size | button-statement ;
+statement     = say-string | say-variable | set-string | if-equals-say | open-window | set-window-size | button-statement ;
+if-equals-say = "if", space, identifier, space, "equals", space, string, space, "say", space, ( string | identifier ) ;
 open-window   = "open", space, "window", space, string ;
 set-window-size = "set", space, "window", space, ("width" | "height"), space, "to", space, string ;
 button-statement = "button", space, string, space, "say", space, ( string | identifier ) ;
@@ -54,9 +56,9 @@ space         = " ", { whitespace } ;
 whitespace    = " " | "\t" ;
 ```
 
-The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal or the name of an existing variable rather than a general expression. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
+The grammar is intentionally limited: strings are the only value type, `set` accepts a string literal or the name of an existing variable rather than a general expression, and the initial `if` form supports exact string equality with a single `say` action. There is no `else` or multi-line conditional block yet. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
-Future syntax such as numbers, arithmetic, conditions, loops, functions, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
+Future syntax such as numbers, arithmetic, `else`, multi-line conditional blocks, loops, and functions requires a language-versioned design and parser tests before it becomes part of the supported language.
 
 ## Manifest v1
 
