@@ -29,7 +29,7 @@ struct Manifest {
 
 fn usage() {
     eprintln!(
-        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, # comment"
+        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, open window \"Title\", set window width/height to \"800\", # comment"
     );
 }
 
@@ -285,8 +285,10 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
         }
     }
 
-    if let Some(title) = window_title {
-        show_gui(&title, window_width, window_height, &window_lines)?;
+    if print_output {
+        if let Some(title) = window_title {
+            show_gui(&title, window_width, window_height, &window_lines)?;
+        }
     }
     Ok(())
 }
@@ -624,6 +626,23 @@ mod tests {
         assert_eq!(program, vec![Statement::SayString {
             value: "ok".into(), line: 3, column: 2,
         }]);
+    }
+
+    #[test]
+    fn parses_gui_window_title_and_dimensions() {
+        let source = "open window \"UNX GUI Test\"\nset window width to \"800\"\nset window height to \"500\"\nsay \"Welcome!\"";
+        let program = parse_program(source).unwrap();
+        assert_eq!(program.len(), 4);
+        assert_eq!(program[0], Statement::OpenWindow { title: "UNX GUI Test".into(), line: 1, column: 1 });
+        assert_eq!(program[1], Statement::SetWindowWidth { value: "800".into(), line: 2, column: 1 });
+        assert_eq!(program[2], Statement::SetWindowHeight { value: "500".into(), line: 3, column: 1 });
+        assert_eq!(program[3], Statement::SayString { value: "Welcome!".into(), line: 4, column: 1 });
+    }
+
+    #[test]
+    fn rejects_gui_statement_with_invalid_syntax() {
+        assert!(parse_program("open window").unwrap_err().contains("expected 'open window"));
+        assert!(parse_program("set window depth to \"500\"").unwrap_err().contains("expected 'width' or 'height'"));
     }
 
     #[test]
