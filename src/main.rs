@@ -429,8 +429,7 @@ mod tests {
     #[test]
     fn parser_rejects_inline_comments_and_punctuation() {
         let inline_comment = parse_program("say \"hello\" # not supported").unwrap_err();
-        assert!(inline_comment.contains("whitespace after string literal")
-            || inline_comment.contains("expected a quoted string or variable name"));
+        assert!(inline_comment.contains("unexpected token"));
 
         let punctuation = parse_program("say name!").unwrap_err();
         assert!(punctuation.contains("unexpected token"));
