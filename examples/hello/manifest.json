@@ -1,0 +1,9 @@
+{
+  "format": "UNX",
+  "format_version": 1,
+  "id": "org.example.hello",
+  "name": "Hello UNX",
+  "version": "0.1.0",
+  "entry": "main.unx",
+  "permissions": []
+}
