@@ -164,3 +164,52 @@ fn inspect_rejects_non_zip_input_without_panicking() {
 
     fs::remove_dir_all(dir).unwrap();
 }
+
+
+fn write_archive(path: &Path, entries: &[(&str, &[u8])]) {
+    let file = fs::File::create(path).expect("create test ZIP");
+    let mut archive = zip::ZipWriter::new(file);
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated);
+    for (name, contents) in entries {
+        archive.start_file(*name, options).expect("start ZIP entry");
+        use std::io::Write;
+        archive.write_all(contents).expect("write ZIP entry");
+    }
+    archive.finish().expect("finish test ZIP");
+}
+
+#[test]
+fn inspect_rejects_invalid_package_fixtures() {
+    let dir = temp_dir("invalid-fixtures");
+    let valid_manifest = br#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test App","version":"0.1.0","entry":"main.unx","permissions":[]}"#;
+    let unsupported_manifest = br#"{"format":"UNX","format_version":99,"id":"org.example.test","name":"Test App","version":"0.1.0","entry":"main.unx","permissions":[]}"#;
+    let invalid_json = b"{ definitely not JSON";
+    let source = b"say \"safe\"\n";
+    let invalid_utf8 = [0xff, 0xfe, 0xfd];
+
+    let fixtures: Vec<(&str, Vec<(&str, &[u8])>, &str)> = vec![
+        ("missing-manifest", vec![("main.unx", source)], "missing manifest.json"),
+        ("invalid-json", vec![("manifest.json", invalid_json), ("main.unx", source)], "invalid manifest"),
+        ("unsupported-version", vec![("manifest.json", unsupported_manifest), ("main.unx", source)], "unsupported UNX package format/version"),
+        ("missing-entry", vec![("manifest.json", valid_manifest)], "missing entry file"),
+        ("invalid-utf8", vec![("manifest.json", valid_manifest), ("main.unx", &invalid_utf8)], "UTF-8"),
+    ];
+
+    for (label, entries, expected_error) in fixtures {
+        let package = dir.join(format!("{label}.unx"));
+        write_archive(&package, &entries);
+        let result = unx(&["inspect", package.to_str().unwrap()]);
+        assert!(
+            !result.status.success(),
+            "fixture {label} should fail validation"
+        );
+        let stderr = text(&result.stderr);
+        assert!(
+            stderr.to_lowercase().contains(&expected_error.to_lowercase()),
+            "fixture {label} expected error containing {expected_error:?}, got: {stderr}"
+        );
+    }
+
+    fs::remove_dir_all(dir).unwrap();
+}
