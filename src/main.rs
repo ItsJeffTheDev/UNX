@@ -739,7 +739,10 @@ fn main() {
         Some("check") if args.len() == 3 => command_check(Path::new(&args[2])),
         Some("pack") if args.len() == 4 => command_pack(Path::new(&args[2]), Path::new(&args[3])),
         Some("inspect") if args.len() == 3 => command_inspect(Path::new(&args[2])),
-        _ => { usage(); return; }
+        _ => {
+            usage();
+            std::process::exit(2);
+        }
     };
     if let Err(error) = result {
         eprintln!("unx: {error}");
