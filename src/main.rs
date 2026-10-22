@@ -399,6 +399,52 @@ mod tests {
     }
 
     #[test]
+    fn parser_accepts_tabs_and_extra_whitespace() {
+        let source = "\tset   name\tto   \"UNX\"  \n  say\tname \n";
+        let program = parse_program(source).unwrap();
+        assert_eq!(program.len(), 2);
+        assert_eq!(program[0], Statement::SetString {
+            name: "name".into(), value: "UNX".into(), line: 1, column: 2,
+        });
+        assert_eq!(program[1], Statement::SayVariable {
+            name: "name".into(), line: 2, column: 3,
+        });
+    }
+
+    #[test]
+    fn parser_rejects_reserved_words_as_variable_names() {
+        for keyword in ["say", "set", "to"] {
+            let source = format!("set {keyword} to \"value\"");
+            let error = parse_program(&source).unwrap_err();
+            assert!(error.contains("variable name"), "unexpected error for {keyword}: {error}");
+        }
+    }
+
+    #[test]
+    fn parser_keywords_are_case_sensitive() {
+        let error = parse_program("Say \"hello\"").unwrap_err();
+        assert!(error.contains("unknown statement"));
+    }
+
+    #[test]
+    fn parser_rejects_inline_comments_and_punctuation() {
+        let inline_comment = parse_program("say \"hello\" # not supported").unwrap_err();
+        assert!(inline_comment.contains("whitespace after string literal")
+            || inline_comment.contains("expected a quoted string or variable name"));
+
+        let punctuation = parse_program("say name!").unwrap_err();
+        assert!(punctuation.contains("unexpected token"));
+    }
+
+    #[test]
+    fn parser_ignores_blank_lines_and_full_line_comments() {
+        let program = parse_program("\n  # comment\n\tsay \"ok\"  \n").unwrap();
+        assert_eq!(program, vec![Statement::SayString {
+            value: "ok".into(), line: 3, column: 2,
+        }]);
+    }
+
+    #[test]
     fn accepts_basic_program() {
         let source = "set name to \"UNX\"\nsay \"Hello\"\nsay name\n";
         assert!(validate_and_execute(source, false).is_ok());
