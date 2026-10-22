@@ -40,7 +40,7 @@ string        = '"', { string-character | escape }, '"' ;
 escape        = '\\', ( '\\' | '"' | 'n' | 't' ) ;
 identifier    = ( letter | "_" ), { letter | digit | "_" } ;
 space         = " ", { whitespace } ;
-whitespace    = " " | "\\t" ;
+whitespace    = " " | "\t" ;
 ```
 
 The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning.
