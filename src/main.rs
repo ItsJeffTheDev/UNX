@@ -1,3 +1,5 @@
+use font8x8::{UnicodeFonts, BASIC_FONTS};
+use minifb::{Key, Window, WindowOptions};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -61,6 +63,9 @@ enum Statement {
     SayString { value: String, line: usize, column: usize },
     SayVariable { name: String, line: usize, column: usize },
     SetString { name: String, value: String, line: usize, column: usize },
+    OpenWindow { title: String, line: usize, column: usize },
+    SetWindowWidth { value: String, line: usize, column: usize },
+    SetWindowHeight { value: String, line: usize, column: usize },
 }
 
 #[derive(Debug, PartialEq)]
@@ -68,6 +73,10 @@ enum TokenKind {
     Say,
     Set,
     To,
+    Open,
+    Window,
+    Width,
+    Height,
     Identifier(String),
     String(String),
 }
@@ -133,6 +142,10 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             "say" => TokenKind::Say,
             "set" => TokenKind::Set,
             "to" => TokenKind::To,
+            "open" => TokenKind::Open,
+            "window" => TokenKind::Window,
+            "width" => TokenKind::Width,
+            "height" => TokenKind::Height,
             _ if word.chars().all(|c| c == '_' || c.is_ascii_alphanumeric()) => TokenKind::Identifier(word.to_string()),
             _ => return Err(format!("line {line_no}, column {column}: unexpected token '{word}'")),
         };
@@ -160,6 +173,16 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
         let tokens = tokenize_line(trimmed, line_no, base_column)?;
         let Some(first) = tokens.first() else { continue; };
         match &first.kind {
+            TokenKind::Open => {
+                if tokens.len() != 3 || tokens[1].kind != TokenKind::Window {
+                    return Err(format!("line {line_no}, column {}: expected 'open window \"TITLE\"'", first.column));
+                }
+                let title = match &tokens[2].kind {
+                    TokenKind::String(value) if !value.trim().is_empty() => value,
+                    _ => return Err(format!("line {line_no}, column {}: expected a non-empty quoted window title", tokens[2].column)),
+                };
+                statements.push(Statement::OpenWindow { title: title.clone(), line: line_no, column: first.column });
+            }
             TokenKind::Say => {
                 if tokens.len() != 2 {
                     return Err(format!("line {line_no}, column {}: expected a quoted string or variable name after 'say'", first.column + 4));
@@ -176,8 +199,23 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                 }
             }
             TokenKind::Set => {
+                if tokens.len() == 5 && tokens[1].kind == TokenKind::Window {
+                    if tokens[3].kind != TokenKind::To {
+                        return Err(format!("line {line_no}, column {}: expected keyword 'to'", tokens[3].column));
+                    }
+                    let value = match &tokens[4].kind {
+                        TokenKind::String(value) => value.clone(),
+                        _ => return Err(format!("line {line_no}, column {}: expected a quoted dimension value", tokens[4].column)),
+                    };
+                    match tokens[2].kind {
+                        TokenKind::Width => statements.push(Statement::SetWindowWidth { value, line: line_no, column: first.column }),
+                        TokenKind::Height => statements.push(Statement::SetWindowHeight { value, line: line_no, column: first.column }),
+                        _ => return Err(format!("line {line_no}, column {}: expected 'width' or 'height' after 'set window'", tokens[2].column)),
+                    }
+                    continue;
+                }
                 if tokens.len() != 4 {
-                    return Err(format!("line {line_no}, column {}: expected 'set NAME to VALUE'", first.column + 4));
+                    return Err(format!("line {line_no}, column {}: expected 'set NAME to VALUE' or 'set window width/height to VALUE'", first.column + 4));
                 }
                 let name = match &tokens[1].kind {
                     TokenKind::Identifier(name) if is_valid_identifier(name) => name,
@@ -203,20 +241,97 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
 
 fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), String> {
     let mut vars: HashMap<String, String> = HashMap::new();
+    let mut window_title: Option<String> = None;
+    let mut window_width: usize = 800;
+    let mut window_height: usize = 500;
+    let mut window_lines: Vec<String> = Vec::new();
+
     for statement in statements {
         match statement {
             Statement::SayString { value, .. } => {
-                if print_output { println!("{value}"); }
+                if window_title.is_some() {
+                    window_lines.push(value.clone());
+                } else if print_output {
+                    println!("{value}");
+                }
             }
             Statement::SayVariable { name, line, column } => {
                 let value = vars.get(name)
                     .ok_or_else(|| format!("line {line}, column {column}: undefined variable '{name}'"))?;
-                if print_output { println!("{value}"); }
+                if window_title.is_some() {
+                    window_lines.push(value.clone());
+                } else if print_output {
+                    println!("{value}");
+                }
             }
             Statement::SetString { name, value, .. } => {
                 vars.insert(name.clone(), value.clone());
             }
+            Statement::OpenWindow { title, .. } => window_title = Some(title.clone()),
+            Statement::SetWindowWidth { value, line, column } => {
+                let parsed = value.parse::<usize>().map_err(|_| format!("line {line}, column {column}: window width must be a number"))?;
+                if !(200..=1920).contains(&parsed) {
+                    return Err(format!("line {line}, column {column}: window width must be between 200 and 1920"));
+                }
+                window_width = parsed;
+            }
+            Statement::SetWindowHeight { value, line, column } => {
+                let parsed = value.parse::<usize>().map_err(|_| format!("line {line}, column {column}: window height must be a number"))?;
+                if !(150..=1200).contains(&parsed) {
+                    return Err(format!("line {line}, column {column}: window height must be between 150 and 1200"));
+                }
+                window_height = parsed;
+            }
         }
+    }
+
+    if let Some(title) = window_title {
+        show_gui(&title, window_width, window_height, &window_lines)?;
+    }
+    Ok(())
+}
+
+fn draw_text(buffer: &mut [u32], width: usize, height: usize, x: usize, y: usize, text: &str, color: u32) {
+    let scale = 2usize;
+    let mut cursor_x = x;
+    for ch in text.chars().take(width.saturating_sub(x) / (8 * scale)) {
+        if let Some(glyph) = BASIC_FONTS.get(ch) {
+            for (row, bits) in glyph.iter().enumerate() {
+                for col in 0..8 {
+                    if bits & (1 << col) != 0 {
+                        for sy in 0..scale {
+                            for sx in 0..scale {
+                                let px = cursor_x + col * scale + sx;
+                                let py = y + row * scale + sy;
+                                if px < width && py < height {
+                                    buffer[py * width + px] = color;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        cursor_x += 8 * scale;
+    }
+}
+
+fn show_gui(title: &str, width: usize, height: usize, lines: &[String]) -> Result<(), String> {
+    let mut window = Window::new(title, width, height, WindowOptions::default())
+        .map_err(|e| format!("could not create GUI window: {e}"))?;
+    let mut buffer = vec![0x00F4F7FB; width * height];
+
+    draw_text(&mut buffer, width, height, 28, 28, title, 0x001B2A41);
+    let mut y = 72usize;
+    for line in lines.iter().take(height.saturating_sub(90) / 28) {
+        draw_text(&mut buffer, width, height, 28, y, line, 0x002B3748);
+        y += 28;
+    }
+    draw_text(&mut buffer, width, height, 28, height.saturating_sub(32), "Press ESC to close", 0x006B7280);
+
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        window.update_with_buffer(&buffer, width, height)
+            .map_err(|e| format!("could not update GUI window: {e}"))?;
     }
     Ok(())
 }
