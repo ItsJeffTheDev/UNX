@@ -19,3 +19,9 @@ The commands use the UNX CLI executable. If unx is not on PATH, set the UNX: Exe
 - UNX: Build .unx Package runs the CLI pack command on the workspace root. The root must contain manifest.json and the entry file named by manifest.entry. The package is written to build/<workspace-name>.unx.
 
 The current interpreter supports comments, string variables, and say output only. The package command bundles the manifest and one entry source file; it does not compile to native machine code or produce native installers. Cross-platform runtimes and installers remain future work.
+
+## UNX file icons
+
+The extension includes a selectable **UNX File Icons** file icon theme. It gives `.unxc` source files a code-file icon and `.unx` packages a separate package icon.
+
+To enable it in VS Code, open the Command Palette (`Ctrl+Shift+P`), run **File Icon Theme**, and choose **UNX File Icons**. This changes file icons in the Explorer; it does not replace your color theme.
