@@ -30,10 +30,10 @@ The GUI smoke test opens an 800×500 window with two experimental clickable butt
 ## Example language
 
 ```text
-# A comment
+# A full-line comment
 set product to "UNX"
 say "Hello from"
-say product
+say product # Inline comments are supported too
 ```
 
 ## Roadmap and documentation
