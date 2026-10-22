@@ -1,6 +1,6 @@
 # Build and test on Windows
 
-Open PowerShell in this directory.
+Install the stable Rust toolchain from https://www.rust-lang.org/tools/install, then open PowerShell in the repository directory.
 
 ```powershell
 rustc --version
@@ -14,6 +14,10 @@ cargo run -- inspect .\Hello.unx
 cargo run -- run .\Hello.unx
 ```
 
-Expected sample output includes `Hello from` and `UNX`.
+Expected sample output includes `Hello from` and `UNX`. The `pack` command creates a ZIP-based `.unx` package; it does not create a native Windows installer.
 
-The build commands have not been executed in this file-generation environment. Run them locally and report any compiler errors so they can be corrected.
+## Continuous integration
+
+GitHub Actions runs `cargo build` and `cargo test` on pushes to `main`, pull requests, and manual workflow dispatches. Check the current result on the [Actions page](https://github.com/ItsJeffTheDev/UNX/actions).
+
+Until `Cargo.lock` is committed, builds may resolve newer compatible dependency versions over time. Do not treat this prototype as a hardened sandbox, and do not run packages from untrusted sources.
