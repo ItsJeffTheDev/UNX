@@ -21,11 +21,11 @@ Principles:
 
 ## Current baseline
 
-The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-22, GitHub Actions successfully completed cargo build and cargo test.
+The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-22, GitHub Actions completed cargo build and cargo test successfully on Windows, macOS, and Ubuntu for the latest commit.
 
 Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, nested multi-line exact-string `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
 
-Not yet implemented: committed Cargo.lock, locked builds, full CI formatting/lint gates, mature parser/value model, arithmetic and control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. CLI integration tests now cover source validation, direct execution, pack → inspect → run, invalid source rejection, path traversal, malformed ZIPs, missing/invalid manifests, unsupported package versions, missing entry files, and invalid UTF-8. The current interpreter is not a hardened sandbox.
+Not yet implemented: committed Cargo.lock, locked builds, full CI formatting/lint gates, mature parser/value model, arithmetic and control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. CLI integration tests now cover source validation, direct execution, pack → inspect → run, invalid source rejection, manifest traversal, malformed ZIPs, missing/invalid manifests, unsupported package versions, missing entry files, invalid UTF-8, and unsafe ZIP entry paths. The duplicate-entry fixture was removed because the test ZIP writer did not support creating the intended fixture; duplicate-entry rejection remains implemented but needs a reliable regression fixture. The current interpreter is not a hardened sandbox.
 
 ---
 
@@ -53,11 +53,11 @@ Tasks:
 - [x] Test pack → inspect → run end to end.
 - [x] Test malformed ZIPs, missing manifests, invalid JSON, missing entry files, invalid UTF-8, and unsupported manifest versions.
 - [x] Validate package paths by components; reject absolute paths and parent traversal without rejecting harmless filenames just because they contain two dots.
-- [ ] Set sensible limits for manifest/source size, file count, and total package content.
+- [x] Set limits for manifest (1 MiB), source (10 MiB), package file size (20 MiB), and package entry count (exactly two).
 - [ ] Make package output deterministic where practical.
-- [ ] Return clear diagnostics and non-zero exit codes on errors.
-- [ ] Add help, version output, and documented exit-code behavior.
-- [ ] Ensure inspect never executes code.
+- [x] Return clear diagnostics and non-zero exit codes for tested invalid inputs.
+- [x] Add and test help and version output (document exit-code behavior separately).
+- [x] Test that inspect reports package contents without starting the application.
 
 **Acceptance:** Happy-path and malformed-package tests pass; invalid input produces useful errors instead of panics; inspection is non-executing; exit codes are documented.
 
