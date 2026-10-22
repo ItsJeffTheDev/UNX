@@ -1,8 +1,24 @@
-# Demonstrate variable assignment and single-line conditions
+# Demonstrate variables, single-line conditions, and multiline blocks
 set language to "UNX"
 set copied_language to language
 
-if copied_language equals "UNX" say "The condition matched!"
-if copied_language equals "other" say "This message should not appear."
+if copied_language equals "UNX" say "The single-line condition matched."
 
-say "The program continues after each condition."
+if copied_language equals "UNX"
+    say "The outer condition matched."
+    if copied_language equals "UNX"
+        say "Nested conditions work too."
+    else
+        say "This nested branch should not run."
+    end
+else
+    say "This outer branch should not run."
+end
+
+if copied_language equals "other"
+    say "This branch should not run."
+else
+    say "The else branch runs when the condition is false."
+end
+
+say "The program continues after each conditional."
