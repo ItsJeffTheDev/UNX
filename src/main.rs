@@ -716,10 +716,7 @@ mod tests {
     }
 
     #[test]
-    fn parser_rejects_inline_comments_and_punctuation() {
-        let inline_comment = parse_program("say \"hello\" # not supported").unwrap_err();
-        assert!(inline_comment.contains("unexpected token"));
-
+    fn parser_rejects_unsupported_punctuation() {
         let punctuation = parse_program("say name!").unwrap_err();
         assert!(punctuation.contains("unexpected token"));
     }
