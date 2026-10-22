@@ -1,10 +1,10 @@
 # UNX
 
-An experimental, open-source English-like programming language and .unx package format, built in Rust.
+An experimental, open-source English-like programming language with editable `.unxc` source files and distributable `.unx` packages, built in Rust.
 
 ## Status
 
-UNX is an early prototype, not a production-ready universal app platform. The .unx file is a ZIP-based project/deployment package, not a native installer. Windows desktop is the first target; platform-specific installers and signing are future work.
+UNX is an early prototype, not a production-ready universal app platform. The `.unxc` file is editable source code. The `.unx` file is currently a ZIP-based source/deployment package, not a native installer or a universal executable yet. Windows desktop is the first target; platform-specific installers and signing are future work.
 
 The GitHub Actions workflow currently passes cargo build and cargo test. The language prototype supports comments, string variables, and say output. Arithmetic, functions, conditions, loops, native UI, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
 
@@ -37,7 +37,7 @@ say product
 
 ## Roadmap and documentation
 
-- [Full project roadmap](docs/ROADMAP.md)
+- [Beginner tutorial: code in UNX and build a .unx package](docs/TUTORIAL.md)\n- [VS Code language support](editors/vscode/README.md)\n- [Full project roadmap](docs/ROADMAP.md)
 - [Language specification 0.1](docs/SPEC-0.1.md)
 - [Build and test guide](docs/BUILD-AND-TEST.md)
 
