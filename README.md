@@ -47,7 +47,8 @@ say product_copy # Inline comments are supported too
 
 - [Beginner tutorial: code in UNX and build a .unx package](docs/TUTORIAL.md)
 - [VS Code language support](editors/vscode/README.md)
-- [Contributing guide](CONTRIBUTING.md)\n- [Full project roadmap](docs/ROADMAP.md)
+- [Contributing guide](CONTRIBUTING.md)
+- [Full project roadmap](docs/ROADMAP.md)
 - [Language specification 0.1](docs/SPEC-0.1.md)
 - [Build and test guide](docs/BUILD-AND-TEST.md)
 
