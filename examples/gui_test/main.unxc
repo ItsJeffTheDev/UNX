@@ -1,0 +1,8 @@
+# First UNX desktop GUI test
+open window "My First UNX App"
+set window width to "800"
+set window height to "500"
+
+say "Welcome to UNX!"
+say "This window was created by a .unxc script."
+say "Press ESC to close the window."
