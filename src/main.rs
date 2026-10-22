@@ -98,7 +98,7 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
             }) {
                 return Err(format!("line {line_no}, column {name_column}: invalid variable name '{name}'"));
             }
-            let value_column = line.find(" to ").map(|i| i + 5).unwrap_or(line.len()) + statement_column;
+            let value_column = line.find(" to ").map(|i| i + 4).unwrap_or(line.len()) + statement_column;
             let value = parse_quoted(value_expr)
                 .ok_or_else(|| format!("line {line_no}, column {value_column}: expected a valid quoted string after 'to'"))?;
             statements.push(Statement::SetString { name: name.to_string(), value, line: line_no, column: statement_column });
@@ -284,6 +284,12 @@ mod tests {
         let error = parse_program("say \"ok\"\nset name to \"bad\\qescape\"").unwrap_err();
         assert!(error.contains("line 2, column"));
         assert!(error.contains("valid quoted string"));
+    }
+
+    #[test]
+    fn reports_column_for_malformed_string_value() {
+        let error = parse_program("set name to \"bad\\qescape\"").unwrap_err();
+        assert!(error.contains("line 1, column 13"));
     }
 
     #[test]
