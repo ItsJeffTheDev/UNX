@@ -1,0 +1,27 @@
+{
+  "Say text": {
+    "prefix": "say",
+    "body": "say \"${1:Hello from UNX}\"",
+    "description": "Print a string"
+  },
+  "Set variable": {
+    "prefix": "set",
+    "body": "set ${1:name} to \"${2:value}\"",
+    "description": "Create or replace a string variable"
+  },
+  "Comment": {
+    "prefix": "comment",
+    "body": "# ${1:comment}",
+    "description": "Add a line comment"
+  },
+  "Starter program": {
+    "prefix": "unxmain",
+    "body": [
+      "# My first UNX program",
+      "set appName to \"${1:My App}\"",
+      "say \"Hello from \"",
+      "say appName"
+    ],
+    "description": "A starter program using the current UNX language subset"
+  }
+}
