@@ -215,7 +215,7 @@ mod tests {
         assert_eq!(parse_quoted("\"line\\nnext\""), Some("line\nnext".to_string()));
         assert_eq!(parse_quoted("\"say \\\"hi\\\"\""), Some("say \"hi\"".to_string()));
         assert_eq!(parse_quoted("\"bad\\qescape\""), None);
-        assert_eq!(parse_quoted("\"unterminated\\\"quote\""), None);
+        assert_eq!(parse_quoted("\"bad\"quote\""), None);
         assert_eq!(parse_quoted("not a string"), None);
     }
 
