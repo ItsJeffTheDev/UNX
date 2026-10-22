@@ -336,6 +336,14 @@ fn command_check(path: &Path) -> Result<(), String> {
 
 fn command_pack(project: &Path, output: &Path) -> Result<(), String> {
     let manifest_path = project.join(MANIFEST_NAME);
+    let manifest_metadata = fs::symlink_metadata(&manifest_path)
+        .map_err(|e| format!("cannot inspect manifest {}: {e}", manifest_path.display()))?;
+    if !manifest_metadata.is_file() {
+        return Err("manifest.json must be a regular file".into());
+    }
+    if manifest_metadata.len() > MAX_MANIFEST_BYTES {
+        return Err("manifest exceeds the 1 MiB size limit".into());
+    }
     let manifest_text = fs::read_to_string(&manifest_path).map_err(|e| format!("cannot read {}: {e}", manifest_path.display()))?;
     let manifest: Manifest = serde_json::from_str(&manifest_text).map_err(|e| format!("invalid manifest JSON: {e}"))?;
     validate_manifest(&manifest)?;
@@ -568,6 +576,17 @@ mod tests {
         let (manifest, source) = load_package(&package).unwrap();
         assert_eq!(manifest.id, "org.example.test");
         assert!(source.contains("say name"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn pack_rejects_oversized_manifest_before_parsing() {
+        let dir = unique_temp_dir("oversized-manifest");
+        let manifest_path = dir.join(MANIFEST_NAME);
+        fs::write(&manifest_path, vec![b' '; MAX_MANIFEST_BYTES as usize + 1]).unwrap();
+
+        let error = command_pack(&dir, &dir.join("oversized.unx")).unwrap_err();
+        assert!(error.contains("manifest exceeds the 1 MiB size limit"));
         fs::remove_dir_all(&dir).unwrap();
     }
 
