@@ -19,11 +19,11 @@ Statements:
 - `set name to "World"` creates/replaces a string variable.
 - `say name` prints a previously defined variable.
 
-Errors include a 1-based source line number. Unknown statements fail closed. This grammar describes the current 0.1 subset only; it is not a promise that future syntax is already implemented.
+Errors include 1-based source line and column numbers. Unknown statements and malformed tokens fail closed. This grammar describes the current 0.1 subset only; it is not a promise that future syntax is already implemented.
 
 ### Lexical and grammar rules
 
-The current interpreter reads UTF-8 source one physical line at a time. A statement may have leading/trailing whitespace. A comment begins when the first non-whitespace character is `#`; inline comments are not currently supported. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
+The current interpreter reads UTF-8 source one physical line at a time, tokenizes each non-comment line, and then parses the resulting tokens into an abstract syntax tree. Tokens include the reserved keywords `say`, `set`, and `to`, identifiers, and string literals. A statement may have leading/trailing whitespace. A comment begins when the first non-whitespace character is `#`; inline comments are not currently supported. Keywords are lowercase and case-sensitive. Identifiers begin with an ASCII letter or underscore and continue with ASCII letters, digits, or underscores. A digit cannot be the first character.
 
 Simplified line grammar (EBNF):
 
@@ -43,7 +43,7 @@ space         = " ", { whitespace } ;
 whitespace    = " " | "\t" ;
 ```
 
-The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning.
+The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal rather than an expression. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
 Future syntax such as numbers, arithmetic, conditions, loops, functions, inline comments, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
 
