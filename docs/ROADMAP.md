@@ -23,7 +23,7 @@ Principles:
 
 The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-22, GitHub Actions successfully completed cargo build and cargo test.
 
-Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
+Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, nested multi-line exact-string `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
 
 Not yet implemented: committed Cargo.lock, broad package regression tests, mature parser/value model, arithmetic and control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. The current interpreter is not a hardened sandbox.
 
