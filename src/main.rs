@@ -54,34 +54,80 @@ fn parse_quoted(input: &str) -> Option<String> {
     Some(out)
 }
 
-fn validate_and_execute(source: &str, print_output: bool) -> Result<(), String> {
-    let mut vars: HashMap<String, String> = HashMap::new();
+#[derive(Debug, PartialEq)]
+enum Statement {
+    SayString { value: String, line: usize },
+    SayVariable { name: String, line: usize },
+    SetString { name: String, value: String, line: usize },
+}
+
+fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
+    let mut statements = Vec::new();
     for (index, raw) in source.lines().enumerate() {
         let line_no = index + 1;
         let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') { continue; }
-        if let Some(rest) = line.strip_prefix("say ") {
-            let value = if let Some(text) = parse_quoted(rest) { text }
-                else if let Some(value) = vars.get(rest.trim()) { value.clone() }
-                else { return Err(format!("line {line_no}: expected a quoted string or a defined variable after 'say'")); };
-            if print_output { println!("{value}"); }
+        if line.is_empty() || line.starts_with('#') {
             continue;
         }
+
+        if let Some(rest) = line.strip_prefix("say ") {
+            if let Some(value) = parse_quoted(rest) {
+                statements.push(Statement::SayString { value, line: line_no });
+            } else {
+                let name = rest.trim();
+                if name.is_empty() || !name.chars().enumerate().all(|(i, c)| {
+                    c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
+                }) {
+                    return Err(format!("line {line_no}: expected a quoted string or variable name after 'say'"));
+                }
+                statements.push(Statement::SayVariable { name: name.to_string(), line: line_no });
+            }
+            continue;
+        }
+
         if let Some(rest) = line.strip_prefix("set ") {
             let (name, value_expr) = rest.split_once(" to ")
                 .ok_or_else(|| format!("line {line_no}: expected 'set NAME to VALUE'"))?;
             let name = name.trim();
-            if name.is_empty() || !name.chars().enumerate().all(|(i,c)| c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))) {
+            if name.is_empty() || !name.chars().enumerate().all(|(i, c)| {
+                c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
+            }) {
                 return Err(format!("line {line_no}: invalid variable name '{name}'"));
             }
             let value = parse_quoted(value_expr)
-                .ok_or_else(|| format!("line {line_no}: expected a quoted string after 'to'"))?;
-            vars.insert(name.to_string(), value);
+                .ok_or_else(|| format!("line {line_no}: expected a valid quoted string after 'to'"))?;
+            statements.push(Statement::SetString { name: name.to_string(), value, line: line_no });
             continue;
         }
+
         return Err(format!("line {line_no}: unknown statement"));
     }
+    Ok(statements)
+}
+
+fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), String> {
+    let mut vars: HashMap<String, String> = HashMap::new();
+    for statement in statements {
+        match statement {
+            Statement::SayString { value, .. } => {
+                if print_output { println!("{value}"); }
+            }
+            Statement::SayVariable { name, line } => {
+                let value = vars.get(name)
+                    .ok_or_else(|| format!("line {line}: undefined variable '{name}'"))?;
+                if print_output { println!("{value}"); }
+            }
+            Statement::SetString { name, value, .. } => {
+                vars.insert(name.clone(), value.clone());
+            }
+        }
+    }
     Ok(())
+}
+
+fn validate_and_execute(source: &str, print_output: bool) -> Result<(), String> {
+    let program = parse_program(source)?;
+    execute_program(&program, print_output)
 }
 
 fn is_safe_package_path(value: &str) -> bool {
