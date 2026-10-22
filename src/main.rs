@@ -61,51 +61,134 @@ enum Statement {
     SetString { name: String, value: String, line: usize, column: usize },
 }
 
+#[derive(Debug, PartialEq)]
+enum TokenKind {
+    Say,
+    Set,
+    To,
+    Identifier(String),
+    String(String),
+}
+
+#[derive(Debug, PartialEq)]
+struct Token {
+    kind: TokenKind,
+    column: usize,
+}
+
+fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<Token>, String> {
+    let mut tokens = Vec::new();
+    let mut offset = 0;
+    while offset < line.len() {
+        let rest = &line[offset..];
+        let first = rest.chars().next().expect("offset is within line");
+        if first == ' ' || first == '\t' {
+            offset += first.len_utf8();
+            continue;
+        }
+        let column = base_column + line[..offset].chars().count();
+        if first == '"' {
+            let mut cursor = offset + 1;
+            let mut escaped = false;
+            let mut closing = None;
+            for (relative, ch) in line[cursor..].char_indices() {
+                let absolute = cursor + relative;
+                if escaped {
+                    escaped = false;
+                    continue;
+                }
+                if ch == '\\' {
+                    escaped = true;
+                } else if ch == '"' {
+                    closing = Some(absolute);
+                    break;
+                }
+            }
+            let close = closing.ok_or_else(|| format!("line {line_no}, column {column}: unterminated string literal"))?;
+            let literal = &line[offset..=close];
+            let value = parse_quoted(literal).ok_or_else(|| {
+                let bad_column = column + 1;
+                format!("line {line_no}, column {bad_column}: invalid string escape or string literal")
+            })?;
+            tokens.push(Token { kind: TokenKind::String(value), column });
+            offset = close + 1;
+            if offset < line.len() {
+                let next = line[offset..].chars().next().expect("offset is within line");
+                if next != ' ' && next != '\t' {
+                    return Err(format!("line {line_no}, column {}: expected whitespace after string literal", base_column + line[..offset].chars().count()));
+                }
+            }
+            continue;
+        }
+        let token_start = offset;
+        while offset < line.len() {
+            let ch = line[offset..].chars().next().expect("offset is within line");
+            if ch == ' ' || ch == '\t' { break; }
+            offset += ch.len_utf8();
+        }
+        let word = &line[token_start..offset];
+        let kind = match word {
+            "say" => TokenKind::Say,
+            "set" => TokenKind::Set,
+            "to" => TokenKind::To,
+            _ if word.chars().enumerate().all(|(i, c)| {
+                c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
+            }) => TokenKind::Identifier(word.to_string()),
+            _ => return Err(format!("line {line_no}, column {column}: unexpected token '{word}'")),
+        };
+        tokens.push(Token { kind, column });
+    }
+    Ok(tokens)
+}
+
 fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
     let mut statements = Vec::new();
     for (index, raw) in source.lines().enumerate() {
         let line_no = index + 1;
+        let trimmed = raw.trim();
+        if trimmed.is_empty() || trimmed.starts_with('#') {
+            continue;
+        }
         let leading_bytes = raw.len() - raw.trim_start().len();
-        let line = raw.trim();
-        if line.is_empty() || line.starts_with('#') {
-            continue;
-        }
-        let statement_column = raw[..leading_bytes].chars().count() + 1;
-
-        if let Some(rest) = line.strip_prefix("say ") {
-            let operand_column = statement_column + 4;
-            if let Some(value) = parse_quoted(rest) {
-                statements.push(Statement::SayString { value, line: line_no, column: statement_column });
-            } else {
-                let name = rest.trim();
-                if name.is_empty() || !name.chars().enumerate().all(|(i, c)| {
-                    c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
-                }) {
-                    return Err(format!("line {line_no}, column {operand_column}: expected a quoted string or variable name after 'say'"));
+        let base_column = raw[..leading_bytes].chars().count() + 1;
+        let tokens = tokenize_line(trimmed, line_no, base_column)?;
+        let Some(first) = tokens.first() else { continue; };
+        match &first.kind {
+            TokenKind::Say => {
+                if tokens.len() != 2 {
+                    return Err(format!("line {line_no}, column {}: expected a quoted string or variable name after 'say'", first.column + 4));
                 }
-                statements.push(Statement::SayVariable { name: name.to_string(), line: line_no, column: statement_column });
+                match &tokens[1].kind {
+                    TokenKind::String(value) => statements.push(Statement::SayString {
+                        value: value.clone(), line: line_no, column: first.column,
+                    }),
+                    TokenKind::Identifier(name) => statements.push(Statement::SayVariable {
+                        name: name.clone(), line: line_no, column: first.column,
+                    }),
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted string or variable name after 'say'", tokens[1].column)),
+                }
             }
-            continue;
-        }
-
-        if let Some(rest) = line.strip_prefix("set ") {
-            let name_column = statement_column + 4;
-            let (name, value_expr) = rest.split_once(" to ")
-                .ok_or_else(|| format!("line {line_no}, column {name_column}: expected 'set NAME to VALUE'"))?;
-            let name = name.trim();
-            if name.is_empty() || !name.chars().enumerate().all(|(i, c)| {
-                c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
-            }) {
-                return Err(format!("line {line_no}, column {name_column}: invalid variable name '{name}'"));
+            TokenKind::Set => {
+                if tokens.len() != 4 {
+                    return Err(format!("line {line_no}, column {}: expected 'set NAME to VALUE'", first.column + 4));
+                }
+                let name = match &tokens[1].kind {
+                    TokenKind::Identifier(name) => name,
+                    _ => return Err(format!("line {line_no}, column {}: expected a variable name after 'set'", tokens[1].column)),
+                };
+                if tokens[2].kind != TokenKind::To {
+                    return Err(format!("line {line_no}, column {}: expected keyword 'to'", tokens[2].column));
+                }
+                let value = match &tokens[3].kind {
+                    TokenKind::String(value) => value,
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted string after 'to'", tokens[3].column)),
+                };
+                statements.push(Statement::SetString {
+                    name: name.clone(), value: value.clone(), line: line_no, column: first.column,
+                });
             }
-            let value_column = line.find(" to ").map(|i| i + 4).unwrap_or(line.len()) + statement_column;
-            let value = parse_quoted(value_expr)
-                .ok_or_else(|| format!("line {line_no}, column {value_column}: expected a valid quoted string after 'to'"))?;
-            statements.push(Statement::SetString { name: name.to_string(), value, line: line_no, column: statement_column });
-            continue;
+            _ => return Err(format!("line {line_no}, column {}: unknown statement", first.column)),
         }
-
-        return Err(format!("line {line_no}, column {statement_column}: unknown statement"));
     }
     Ok(statements)
 }
