@@ -1,0 +1,63 @@
+{
+  "scopeName": "source.unx",
+  "patterns": [
+    {
+      "include": "#comments"
+    },
+    {
+      "include": "#strings"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#constants"
+    },
+    {
+      "include": "#variables"
+    }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.number-sign.unx",
+          "match": "#.*$"
+        }
+      ]
+    },
+    "strings": {
+      "name": "string.quoted.double.unx",
+      "begin": "\"",
+      "beginCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.begin.unx"
+        }
+      },
+      "end": "\"",
+      "endCaptures": {
+        "0": {
+          "name": "punctuation.definition.string.end.unx"
+        }
+      },
+      "patterns": [
+        {
+          "name": "constant.character.escape.unx",
+          "match": "\\\\\\\\[\\\\\\\\\"nt]"
+        }
+      ]
+    },
+    "keywords": {
+      "name": "keyword.control.unx",
+      "match": "\\b(say|set|to|if|else|end|repeat|function|return)\\b"
+    },
+    "constants": {
+      "name": "constant.language.unx",
+      "match": "\\b(true|false|null)\\b"
+    },
+    "variables": {
+      "name": "variable.other.unx",
+      "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b"
+    }
+  }
+}
