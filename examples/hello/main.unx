@@ -1,0 +1,4 @@
+# A tiny UNX program.
+set product to "UNX"
+say "Hello from "
+say product
