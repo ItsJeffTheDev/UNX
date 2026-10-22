@@ -1,5 +1,5 @@
 use font8x8::{UnicodeFonts, BASIC_FONTS};
-use minifb::{Key, Window, WindowOptions};
+use minifb::{Key, MouseButton, MouseMode, Window, WindowOptions};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
@@ -29,7 +29,7 @@ struct Manifest {
 
 fn usage() {
     eprintln!(
-        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, open window \"Title\", set window width/height to \"800\", # comment"
+        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, open window \"Title\", set window width/height to \"800\", button \"Click me\" say \"Clicked!\", # comment"
     );
 }
 
@@ -66,6 +66,7 @@ enum Statement {
     OpenWindow { title: String, line: usize, column: usize },
     SetWindowWidth { value: String, line: usize, column: usize },
     SetWindowHeight { value: String, line: usize, column: usize },
+    Button { label: String, message: String, line: usize, column: usize },
 }
 
 #[derive(Debug, PartialEq)]
@@ -77,6 +78,7 @@ enum TokenKind {
     Window,
     Width,
     Height,
+    Button,
     Identifier(String),
     String(String),
 }
@@ -146,6 +148,7 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             "window" => TokenKind::Window,
             "width" => TokenKind::Width,
             "height" => TokenKind::Height,
+            "button" => TokenKind::Button,
             _ if word.chars().all(|c| c == '_' || c.is_ascii_alphanumeric()) => TokenKind::Identifier(word.to_string()),
             _ => return Err(format!("line {line_no}, column {column}: unexpected token '{word}'")),
         };
@@ -173,6 +176,20 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
         let tokens = tokenize_line(trimmed, line_no, base_column)?;
         let Some(first) = tokens.first() else { continue; };
         match &first.kind {
+            TokenKind::Button => {
+                if tokens.len() != 4 || tokens[2].kind != TokenKind::Say {
+                    return Err(format!("line {line_no}, column {}: expected 'button \"LABEL\" say \"MESSAGE\"'", first.column));
+                }
+                let label = match &tokens[1].kind {
+                    TokenKind::String(value) if !value.trim().is_empty() => value.clone(),
+                    _ => return Err(format!("line {line_no}, column {}: expected a non-empty quoted button label", tokens[1].column)),
+                };
+                let message = match &tokens[3].kind {
+                    TokenKind::String(value) => value.clone(),
+                    _ => return Err(format!("line {line_no}, column {}: expected a quoted message after button say", tokens[3].column)),
+                };
+                statements.push(Statement::Button { label, message, line: line_no, column: first.column });
+            }
             TokenKind::Open => {
                 if tokens.len() != 3 || tokens[1].kind != TokenKind::Window {
                     return Err(format!("line {line_no}, column {}: expected 'open window \"TITLE\"'", first.column));
@@ -245,6 +262,7 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
     let mut window_width: usize = 800;
     let mut window_height: usize = 500;
     let mut window_lines: Vec<String> = Vec::new();
+    let mut window_buttons: Vec<(String, String)> = Vec::new();
 
     for statement in statements {
         match statement {
@@ -268,6 +286,12 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
                 vars.insert(name.clone(), value.clone());
             }
             Statement::OpenWindow { title, .. } => window_title = Some(title.clone()),
+            Statement::Button { label, message, line, column } => {
+                if window_title.is_none() {
+                    return Err(format!("line {line}, column {column}: button requires an open window"));
+                }
+                window_buttons.push((label.clone(), message.clone()));
+            }
             Statement::SetWindowWidth { value, line, column } => {
                 let parsed = value.parse::<usize>().map_err(|_| format!("line {line}, column {column}: window width must be a number"))?;
                 if !(200..=1920).contains(&parsed) {
@@ -287,7 +311,7 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
 
     if print_output {
         if let Some(title) = window_title {
-            show_gui(&title, window_width, window_height, &window_lines)?;
+            show_gui(&title, window_width, window_height, &window_lines, &window_buttons)?;
         }
     }
     Ok(())
@@ -318,20 +342,56 @@ fn draw_text(buffer: &mut [u32], width: usize, height: usize, x: usize, y: usize
     }
 }
 
-fn show_gui(title: &str, width: usize, height: usize, lines: &[String]) -> Result<(), String> {
+fn show_gui(
+    title: &str,
+    width: usize,
+    height: usize,
+    lines: &[String],
+    buttons: &[(String, String)],
+) -> Result<(), String> {
     let mut window = Window::new(title, width, height, WindowOptions::default())
         .map_err(|e| format!("could not create GUI window: {e}"))?;
     let mut buffer = vec![0x00F4F7FB; width * height];
-
-    draw_text(&mut buffer, width, height, 28, 28, title, 0x001B2A41);
-    let mut y = 72usize;
-    for line in lines.iter().take(height.saturating_sub(90) / 28) {
-        draw_text(&mut buffer, width, height, 28, y, line, 0x002B3748);
-        y += 28;
-    }
-    draw_text(&mut buffer, width, height, 28, height.saturating_sub(32), "Press ESC to close", 0x006B7280);
+    let mut status = String::from("Click a button or press ESC to close");
+    let mut previous_mouse_down = false;
 
     while window.is_open() && !window.is_key_down(Key::Escape) {
+        buffer.fill(0x00F4F7FB);
+        draw_text(&mut buffer, width, height, 28, 28, title, 0x001B2A41);
+        let mut y = 72usize;
+        for line in lines.iter().take(height.saturating_sub(190) / 28) {
+            draw_text(&mut buffer, width, height, 28, y, line, 0x002B3748);
+            y += 28;
+        }
+        let button_top = (y + 16).max(120);
+        let mouse_down = window.get_mouse_down(MouseButton::Left);
+        if mouse_down && !previous_mouse_down {
+            if let Some((mx, my)) = window.get_mouse_pos(MouseMode::Discard) {
+                for (index, (_, message)) in buttons.iter().enumerate() {
+                    let bx = 28.0_f32;
+                    let by = (button_top + index * 52) as f32;
+                    if mx >= bx && mx <= bx + 260.0 && my >= by && my <= by + 38.0 {
+                        status = message.clone();
+                        break;
+                    }
+                }
+            }
+        }
+        previous_mouse_down = mouse_down;
+
+        for (index, (label, _)) in buttons.iter().enumerate() {
+            let bx = 28usize;
+            let by = button_top + index * 52;
+            if by + 38 < height.saturating_sub(45) {
+                for py in by..by + 38 {
+                    for px in bx..(bx + 260).min(width) {
+                        buffer[py * width + px] = 0x00DCEAFE;
+                    }
+                }
+                draw_text(&mut buffer, width, height, bx + 12, by + 10, label, 0x001D4ED8);
+            }
+        }
+        draw_text(&mut buffer, width, height, 28, height.saturating_sub(32), &status, 0x006B7280);
         window.update_with_buffer(&buffer, width, height)
             .map_err(|e| format!("could not update GUI window: {e}"))?;
     }
@@ -626,6 +686,20 @@ mod tests {
         assert_eq!(program, vec![Statement::SayString {
             value: "ok".into(), line: 3, column: 2,
         }]);
+    }
+
+    #[test]
+    fn parses_button_label_and_click_message() {
+        let program = parse_program("open window \"Test\"\nbutton \"Click me\" say \"Button clicked!\"").unwrap();
+        assert_eq!(program[1], Statement::Button {
+            label: "Click me".into(), message: "Button clicked!".into(), line: 2, column: 1,
+        });
+    }
+
+    #[test]
+    fn rejects_button_without_open_window() {
+        let program = parse_program("button \"Click me\" say \"Clicked\"").unwrap();
+        assert!(execute_program(&program, false).unwrap_err().contains("button requires an open window"));
     }
 
     #[test]
