@@ -37,7 +37,9 @@ say product
 
 ## Roadmap and documentation
 
-- [Beginner tutorial: code in UNX and build a .unx package](docs/TUTORIAL.md)\n- [VS Code language support](editors/vscode/README.md)\n- [Full project roadmap](docs/ROADMAP.md)
+- [Beginner tutorial: code in UNX and build a .unx package](docs/TUTORIAL.md)
+- [VS Code language support](editors/vscode/README.md)
+- [Contributing guide](CONTRIBUTING.md)\n- [Full project roadmap](docs/ROADMAP.md)
 - [Language specification 0.1](docs/SPEC-0.1.md)
 - [Build and test guide](docs/BUILD-AND-TEST.md)
 
@@ -47,4 +49,4 @@ Do not run .unx packages from untrusted sources. This is an experimental interpr
 
 ## Contributing
 
-Contributions are welcome. Please open an issue to discuss larger changes before starting implementation, and run the build and test commands before submitting a pull request. The roadmap describes the intended sequence; features are not supported until implemented and tested.
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md), open an issue to discuss larger changes before starting implementation, and run the build and test commands before submitting a pull request. The roadmap describes the intended sequence; features are not supported until implemented and tested.
