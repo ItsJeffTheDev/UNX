@@ -7,6 +7,9 @@ use std::{
     path::Path,
 };
 
+const MAX_MANIFEST_BYTES: u64 = 1024 * 1024;
+const MAX_SOURCE_BYTES: u64 = 10 * 1024 * 1024;
+
 const MANIFEST_NAME: &str = "manifest.json";
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,23 +77,44 @@ fn validate_and_execute(source: &str, print_output: bool) -> Result<(), String> 
     Ok(())
 }
 
+fn is_safe_package_path(value: &str) -> bool {
+    if value.is_empty() || value.starts_with('/') || value.contains(':') || value.bytes().any(|b| b == 92) {
+        return false;
+    }
+    value.split('/').all(|part| !part.is_empty() && part != "." && part != "..")
+}
+
+fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
+    if manifest.format != "UNX" || manifest.format_version != 1 {
+        return Err("unsupported UNX package format/version".into());
+    }
+    if !is_safe_package_path(&manifest.entry) {
+        return Err("unsafe entry path in manifest".into());
+    }
+    if manifest.id.trim().is_empty() || manifest.name.trim().is_empty() || manifest.version.trim().is_empty() {
+        return Err("manifest id, name, and version must not be empty".into());
+    }
+    Ok(())
+}
+
 fn load_package(path: &Path) -> Result<(Manifest, String), String> {
     let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("invalid ZIP package: {e}"))?;
     let manifest: Manifest = {
         let mut entry = archive.by_name(MANIFEST_NAME).map_err(|_| "package is missing manifest.json".to_string())?;
+        if entry.size() > MAX_MANIFEST_BYTES {
+            return Err("manifest exceeds the 1 MiB size limit".into());
+        }
         let mut text = String::new();
         entry.read_to_string(&mut text).map_err(|e| e.to_string())?;
         serde_json::from_str(&text).map_err(|e| format!("invalid manifest: {e}"))?
     };
-    if manifest.format != "UNX" || manifest.format_version != 1 {
-        return Err("unsupported UNX package format/version".into());
-    }
-    if manifest.entry.starts_with('/') || manifest.entry.contains("..") || manifest.entry.contains('\\') {
-        return Err("unsafe entry path in manifest".into());
-    }
+    validate_manifest(&manifest)?;
     let mut entry = archive.by_name(&manifest.entry)
         .map_err(|_| format!("package is missing entry file '{}'", manifest.entry))?;
+    if entry.size() > MAX_SOURCE_BYTES {
+        return Err("entry source exceeds the 10 MiB size limit".into());
+    }
     let mut source = String::new();
     entry.read_to_string(&mut source).map_err(|e| e.to_string())?;
     Ok((manifest, source))
@@ -122,9 +146,15 @@ fn command_pack(project: &Path, output: &Path) -> Result<(), String> {
     let manifest_path = project.join(MANIFEST_NAME);
     let manifest_text = fs::read_to_string(&manifest_path).map_err(|e| format!("cannot read {}: {e}", manifest_path.display()))?;
     let manifest: Manifest = serde_json::from_str(&manifest_text).map_err(|e| format!("invalid manifest JSON: {e}"))?;
-    if manifest.format != "UNX" || manifest.format_version != 1 { return Err("manifest must declare format='UNX' and format_version=1".into()); }
-    if manifest.entry.starts_with('/') || manifest.entry.contains("..") || manifest.entry.contains('\\') { return Err("unsafe entry path in manifest".into()); }
+    validate_manifest(&manifest)?;
     let source_path = project.join(&manifest.entry);
+    let source_metadata = fs::metadata(&source_path).map_err(|e| format!("cannot read entry {}: {e}", source_path.display()))?;
+    if !source_metadata.is_file() {
+        return Err("manifest entry must refer to a file".into());
+    }
+    if source_metadata.len() > MAX_SOURCE_BYTES {
+        return Err("entry source exceeds the 10 MiB size limit".into());
+    }
     let source = fs::read_to_string(&source_path).map_err(|e| format!("cannot read entry {}: {e}", source_path.display()))?;
     validate_and_execute(&source, false)?;
     if let Some(parent) = output.parent() {
@@ -192,5 +222,37 @@ mod tests {
     fn rejects_undefined_variable() {
         let error = validate_and_execute("say missing", false).unwrap_err();
         assert!(error.contains("line 1"));
+    }
+
+    #[test]
+    fn accepts_nested_package_paths_and_dot_names() {
+        assert!(is_safe_package_path("src/main.unx"));
+        assert!(is_safe_package_path("assets/logo.png"));
+        assert!(is_safe_package_path("release..notes/main.unx"));
+    }
+
+    #[test]
+    fn rejects_unsafe_package_paths() {
+        for path in ["", "../main.unx", "src/../main.unx", "/etc/passwd", "//server/share", "src\\\\main.unx", "C:/Windows/file", ".", "src//main.unx"] {
+            assert!(!is_safe_package_path(path), "expected unsafe path to be rejected: {path}");
+        }
+    }
+
+    #[test]
+    fn validates_manifest_fields_and_version() {
+        let manifest = Manifest {
+            format: "UNX".into(),
+            format_version: 1,
+            id: "org.example.hello".into(),
+            name: "Hello".into(),
+            version: "0.1.0".into(),
+            entry: "main.unx".into(),
+            permissions: vec![],
+        };
+        assert!(validate_manifest(&manifest).is_ok());
+
+        let mut invalid = manifest;
+        invalid.entry = "../escape.unx".into();
+        assert!(validate_manifest(&invalid).is_err());
     }
 }
