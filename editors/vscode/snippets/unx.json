@@ -23,5 +23,16 @@
       "say appName"
     ],
     "description": "A starter program using the current UNX language subset"
+  },
+  "GUI window": {
+    "prefix": "unxgui",
+    "body": [
+      "open window \"\${1:My First UNX App}\"",
+      "set window width to \"\${2:800}\"",
+      "set window height to \"\${3:500}\"",
+      "",
+      "say \"\${4:Welcome to UNX!}\""
+    ],
+    "description": "Create an experimental UNX desktop window"
   }
 }
