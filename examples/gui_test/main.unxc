@@ -6,3 +6,6 @@ set window height to "500"
 say "Welcome to UNX!"
 say "This window was created by a .unxc script."
 say "Press ESC to close the window."
+
+button "Say hello" say "Hello from a clicked UNX button!"
+button "About UNX" say "UNX GUI buttons are experimental."
