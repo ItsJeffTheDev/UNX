@@ -29,7 +29,7 @@ struct Manifest {
 
 fn usage() {
     eprintln!(
-        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, open window \"Title\", set window width/height to \"800\", button \"Click me\" say \"Clicked!\" or say variableName, # comment"
+        "UNX prototype 0.1\nUsage:\n  unx run <source.unx|package.unx>\n  unx check <source.unx>\n  unx pack <project-directory> <output.unx>\n  unx inspect <package.unx>\n\nPrototype statements: say \"Hello\", set name to \"UNX\", say name, if name equals \"UNX\" say \"matched\", if name equals \"UNX\" / else / end blocks, open window \"Title\", set window width/height to \"800\", button \"Click me\" say \"Clicked!\" or say variableName, # comment"
     );
 }
 
