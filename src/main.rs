@@ -108,7 +108,7 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             let literal = &line[offset..=close];
             let value = parse_quoted(literal).ok_or_else(|| {
                 let bad_column = column;
-                format!("line {line_no}, column {bad_column}: invalid string escape or string literal")
+                format!("line {line_no}, column {bad_column}: invalid string escape or string literal; expected a valid quoted string")
             })?;
             tokens.push(Token { kind: TokenKind::String(value), column });
             offset = close + 1;
@@ -131,14 +131,18 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             "say" => TokenKind::Say,
             "set" => TokenKind::Set,
             "to" => TokenKind::To,
-            _ if word.chars().enumerate().all(|(i, c)| {
-                c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
-            }) => TokenKind::Identifier(word.to_string()),
+            _ if word.chars().all(|c| c == '_' || c.is_ascii_alphanumeric()) => TokenKind::Identifier(word.to_string()),
             _ => return Err(format!("line {line_no}, column {column}: unexpected token '{word}'")),
         };
         tokens.push(Token { kind, column });
     }
     Ok(tokens)
+}
+
+fn is_valid_identifier(name: &str) -> bool {
+    !name.is_empty() && name.chars().enumerate().all(|(i, c)| {
+        c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
+    })
 }
 
 fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
@@ -162,9 +166,10 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                     TokenKind::String(value) => statements.push(Statement::SayString {
                         value: value.clone(), line: line_no, column: first.column,
                     }),
-                    TokenKind::Identifier(name) => statements.push(Statement::SayVariable {
+                    TokenKind::Identifier(name) if is_valid_identifier(name) => statements.push(Statement::SayVariable {
                         name: name.clone(), line: line_no, column: first.column,
                     }),
+                    TokenKind::Identifier(_) => return Err(format!("line {line_no}, column {}: invalid variable name", tokens[1].column)),
                     _ => return Err(format!("line {line_no}, column {}: expected a quoted string or variable name after 'say'", tokens[1].column)),
                 }
             }
@@ -173,7 +178,8 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                     return Err(format!("line {line_no}, column {}: expected 'set NAME to VALUE'", first.column + 4));
                 }
                 let name = match &tokens[1].kind {
-                    TokenKind::Identifier(name) => name,
+                    TokenKind::Identifier(name) if is_valid_identifier(name) => name,
+                    TokenKind::Identifier(_) => return Err(format!("line {line_no}, column {}: invalid variable name", tokens[1].column)),
                     _ => return Err(format!("line {line_no}, column {}: expected a variable name after 'set'", tokens[1].column)),
                 };
                 if tokens[2].kind != TokenKind::To {
