@@ -107,7 +107,7 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             let close = closing.ok_or_else(|| format!("line {line_no}, column {column}: unterminated string literal"))?;
             let literal = &line[offset..=close];
             let value = parse_quoted(literal).ok_or_else(|| {
-                let bad_column = column + 1;
+                let bad_column = column;
                 format!("line {line_no}, column {bad_column}: invalid string escape or string literal")
             })?;
             tokens.push(Token { kind: TokenKind::String(value), column });
@@ -351,6 +351,23 @@ mod tests {
         assert_eq!(parse_quoted("\"bad\\qescape\""), None);
         assert_eq!(parse_quoted("\"bad\"quote\""), None);
         assert_eq!(parse_quoted("not a string"), None);
+    }
+
+    #[test]
+    fn tokenizer_recognizes_keywords_identifiers_and_strings() {
+        let tokens = tokenize_line("set name to \"UNX\"", 1, 1).unwrap();
+        assert_eq!(tokens.len(), 4);
+        assert_eq!(tokens[0].kind, TokenKind::Set);
+        assert_eq!(tokens[1].kind, TokenKind::Identifier("name".into()));
+        assert_eq!(tokens[2].kind, TokenKind::To);
+        assert_eq!(tokens[3].kind, TokenKind::String("UNX".into()));
+    }
+
+    #[test]
+    fn tokenizer_rejects_adjacent_text_after_string() {
+        let error = tokenize_line("say \"hello\"world", 1, 1).unwrap_err();
+        assert!(error.contains("line 1, column 12"));
+        assert!(error.contains("whitespace after string literal"));
     }
 
     #[test]
