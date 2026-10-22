@@ -6,7 +6,7 @@ An experimental, open-source English-like programming language with editable `.u
 
 UNX is an early prototype, not a production-ready universal app platform. The `.unxc` file is editable source code. The `.unx` file is currently a ZIP-based source/deployment package, not a native installer or a universal executable yet. Windows desktop is the first target; platform-specific installers and signing are future work.
 
-The language prototype supports comments, string variables (including copying an existing variable with `set copy to original`), simple equality conditions (`if name equals "UNX" say "matched"`), and say output, and an experimental desktop window statement with clickable buttons that can display literal messages or existing string variables. The first GUI runtime uses a simple pixel-rendered window with text and an Escape-to-close loop. It is an early prototype, not a full widget toolkit; inputs, layout containers, general event handlers, arithmetic, functions, conditions, loops, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
+The language prototype supports comments, string variables (including copying an existing variable with `set copy to original`), single-line equality conditions and multi-line `if` / `else` / `end` blocks, `say` output, and an experimental desktop window statement with clickable buttons that can display literal messages or existing string variables. The first GUI runtime uses a simple pixel-rendered window with text and an Escape-to-close loop. It is an early prototype, not a full widget toolkit; inputs, layout containers, general event handlers, arithmetic, functions, conditions, loops, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
 
 ## Build and try
 
@@ -35,6 +35,11 @@ set product to "UNX"
 say "Hello from"
 set product_copy to product
 if product_copy equals "UNX" say "Product matched"
+if product_copy equals "UNX"
+  say "This is a multi-line true branch"
+else
+  say "This is the alternate branch"
+end
 say product_copy # Inline comments are supported too
 ```
 
