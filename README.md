@@ -15,6 +15,8 @@ Install stable Rust from https://www.rust-lang.org/tools/install, then run:
 ```powershell
 cargo build
 cargo test
+cargo run -- --help
+cargo run -- --version
 cargo run -- run .\examples\hello\main.unx
 cargo run -- check .\examples\hello\main.unx
 cargo run -- pack .\examples\hello .\Hello.unx
