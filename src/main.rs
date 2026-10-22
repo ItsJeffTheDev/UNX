@@ -636,6 +636,25 @@ mod tests {
     }
 
     #[test]
+    fn package_reader_rejects_oversized_manifest() {
+        let dir = unique_temp_dir("oversized-archive-manifest");
+        let package = dir.join("oversized-manifest.unx");
+        let file = File::create(&package).unwrap();
+        let mut archive = zip::ZipWriter::new(file);
+        let options = zip::write::SimpleFileOptions::default();
+        archive.start_file(MANIFEST_NAME, options).unwrap();
+        let oversized_manifest = vec![b' '; MAX_MANIFEST_BYTES as usize + 1];
+        archive.write_all(&oversized_manifest).unwrap();
+        archive.start_file("main.unx", options).unwrap();
+        archive.write_all(b"say \"hi\"").unwrap();
+        archive.finish().unwrap();
+
+        let error = load_package(&package).unwrap_err();
+        assert!(error.contains("manifest exceeds the 1 MiB size limit"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
     fn package_reader_rejects_oversized_uncompressed_source() {
         let dir = unique_temp_dir("oversized-source");
         let package = dir.join("oversized.unx");
