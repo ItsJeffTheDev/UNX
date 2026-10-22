@@ -1,0 +1,4 @@
+# A tiny UNX program written in a .unxc source file.
+set product to "UNX"
+say "Hello from "
+say product
