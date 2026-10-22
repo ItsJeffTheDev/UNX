@@ -238,6 +238,60 @@ mod tests {
         }
     }
 
+    fn unique_temp_dir(label: &str) -> std::path::PathBuf {
+        use std::time::{SystemTime, UNIX_EPOCH};
+        let nonce = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let path = std::env::temp_dir().join(format!("unx-{label}-{}-{nonce}", std::process::id()));
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
+    #[test]
+    fn pack_then_load_package_round_trip() {
+        let dir = unique_temp_dir("round-trip");
+        let project = dir.join("project");
+        fs::create_dir_all(&project).unwrap();
+        fs::write(
+            project.join(MANIFEST_NAME),
+            r#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test App","version":"0.1.0","entry":"main.unx","permissions":[]}"#,
+        ).unwrap();
+        fs::write(project.join("main.unx"), "set name to \"UNX\"\nsay name\n").unwrap();
+
+        let package = dir.join("test.unx");
+        command_pack(&project, &package).unwrap();
+        let (manifest, source) = load_package(&package).unwrap();
+        assert_eq!(manifest.id, "org.example.test");
+        assert!(source.contains("say name"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn pack_rejects_parent_traversal_entry() {
+        let dir = unique_temp_dir("traversal");
+        fs::write(
+            dir.join(MANIFEST_NAME),
+            r#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test App","version":"0.1.0","entry":"../outside.unx","permissions":[]}"#,
+        ).unwrap();
+        let error = command_pack(&dir, &dir.join("bad.unx")).unwrap_err();
+        assert!(error.contains("unsafe entry path"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn package_reader_rejects_zip_without_manifest() {
+        let dir = unique_temp_dir("missing-manifest");
+        let package = dir.join("bad.unx");
+        let file = File::create(&package).unwrap();
+        let mut archive = zip::ZipWriter::new(file);
+        archive.start_file("main.unx", zip::write::SimpleFileOptions::default()).unwrap();
+        archive.write_all(b"say \"hi\"").unwrap();
+        archive.finish().unwrap();
+
+        let error = load_package(&package).unwrap_err();
+        assert!(error.contains("missing manifest.json"));
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
     #[test]
     fn validates_manifest_fields_and_version() {
         let manifest = Manifest {
