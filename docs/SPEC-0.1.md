@@ -56,7 +56,7 @@ whitespace    = " " | "\t" ;
 
 The grammar is intentionally limited: strings are the only value type, and `set` accepts a string literal or the name of an existing variable rather than a general expression. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
-Future syntax such as numbers, arithmetic, conditions, loops, functions, inline comments, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
+Future syntax such as numbers, arithmetic, conditions, loops, functions, and multi-line blocks requires a language-versioned design and parser tests before it becomes part of the supported language.
 
 ## Manifest v1
 
