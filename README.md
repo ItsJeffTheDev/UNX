@@ -6,7 +6,7 @@ An experimental, open-source English-like programming language with editable `.u
 
 UNX is an early prototype, not a production-ready universal app platform. The `.unxc` file is editable source code. The `.unx` file is currently a ZIP-based source/deployment package, not a native installer or a universal executable yet. Windows desktop is the first target; platform-specific installers and signing are future work.
 
-The language prototype supports comments, string variables (including copying an existing variable with `set copy to original`), single-line equality conditions and multi-line `if` / `else` / `end` blocks, `say` output, and an experimental desktop window statement with clickable buttons that can display literal messages or existing string variables. The first GUI runtime uses a simple pixel-rendered window with text and an Escape-to-close loop. It is an early prototype, not a full widget toolkit; inputs, layout containers, general event handlers, arithmetic, functions, loops, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
+The language prototype supports comments, string variables (including copying an existing variable with `set copy to original`), integer arithmetic with precedence and parentheses, numeric comparisons, single-line and multi-line conditions, `say` output, and an experimental desktop window statement with clickable buttons that can display literal messages or existing string variables. The first GUI runtime uses a simple pixel-rendered window with text and an Escape-to-close loop. It is an early prototype, not a full widget toolkit; decimal numbers, booleans, compound logical conditions, functions, loops, installer generation, publisher signing, and hardened sandbox enforcement are not implemented yet.
 
 ## Build and try
 
@@ -42,6 +42,24 @@ else
 end
 say product_copy # Inline comments are supported too
 ```
+
+## Numeric expressions preview
+
+```text
+set subtotal to 2 + 3 * 4
+say subtotal
+set grouped to (2 + 3) * 4
+say grouped
+set score to 10
+if score > 5
+  say "Score is above five"
+else
+  say "Score is five or below"
+end
+if score >= 10 say "At least ten"
+```
+
+The current integer-expression preview supports `+`, `-`, `*`, `/`, `%`, unary minus, parentheses, and numeric comparisons `>`, `<`, `>=`, `<=`, `==`, and `!=`. It rejects division by zero, integer overflow, undefined numeric variables, and string values used as numbers. This is an early 0.2 preview; see the draft specification for current limitations.
 
 ## Roadmap and documentation
 
