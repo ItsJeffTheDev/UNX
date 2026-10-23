@@ -78,10 +78,15 @@ fn integer_arithmetic_respects_precedence_parentheses_and_unary_minus() {
     let source = dir.join("arithmetic.unxc");
     fs::write(
         &source,
-        "set total to 2 + 3 * 4\nsay total\
-\nset grouped to (2 + 3) * 4\nsay grouped\
-\nset negative to -7 + 2\nsay negative\
-\nset remainder to 17 % 5\nsay remainder\n",
+        r#"set total to 2 + 3 * 4
+say total
+set grouped to (2 + 3) * 4
+say grouped
+set negative to -7 + 2
+say negative
+set remainder to 17 % 5
+say remainder
+"#,
     ).unwrap();
 
     let result = unx(&["run", source.to_str().unwrap()]);
@@ -96,15 +101,16 @@ fn numeric_comparisons_support_blocks_single_line_and_expression_rhs() {
     let source = dir.join("comparisons.unxc");
     fs::write(
         &source,
-        "set score to 10\
-\nif score > 2 + 3\
-\n  say \"greater\"\
-\nelse\
-\n  say \"not greater\"\
-\nend\
-\nif score >= 10 say \"at least ten\"\
-\nif score == 9 say \"wrong equality\"\
-\nif score != 10 say \"wrong inequality\"\n",
+        r#"set score to 10
+if score > 2 + 3
+  say "greater"
+else
+  say "not greater"
+end
+if score >= 10 say "at least ten"
+if score == 9 say "wrong equality"
+if score != 10 say "wrong inequality"
+"#,
     ).unwrap();
 
     let result = unx(&["run", source.to_str().unwrap()]);
