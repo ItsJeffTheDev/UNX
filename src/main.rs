@@ -1245,4 +1245,15 @@ mod tests {
         invalid.entry = "../escape.unx".into();
         assert!(validate_manifest(&invalid).is_err());
     }
+
+    #[test]
+    fn package_paths_reject_ambiguous_or_platform_specific_forms() {
+        for path in ["", ".", "./main.unx", "src//main.unx", "src/../main.unx", "../main.unx", "/main.unx", "C:/main.unx", "src\\\\main.unx", "main.unx\\n"] {
+            assert!(!is_safe_package_path(path), "path should be rejected: {path:?}");
+        }
+
+        for path in ["main.unx", "src/main.unx", "my..app/main.unx", "main-file_v2.unx"] {
+            assert!(is_safe_package_path(path), "path should be accepted: {path:?}");
+        }
+    }
 }
