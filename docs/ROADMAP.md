@@ -98,7 +98,7 @@ Illustrative future syntax (not finalized):
 **Goal:** Make packages portable, inspectable, and versionable.
 
 Tasks:
-- [ ] Document ZIP layout and required manifest fields.
+- [x] Document the current ZIP layout and required manifest fields in `docs/UNX-PACKAGE-FORMAT.md` (prototype reference; stable compatibility policy remains open).
 - [ ] Version the package format independently from the language.
 - [ ] Define application ID, display name, package version, entry point, assets, permissions, and minimum runtime version.
 - [ ] Define path normalization, duplicate entries, case collisions, and allowed file types.
