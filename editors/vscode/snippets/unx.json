@@ -9,6 +9,27 @@
     "body": "set ${1:name} to \"${2:value}\"",
     "description": "Create or replace a string variable"
   },
+  "Numeric expression": {
+    "prefix": "unxnumber",
+    "body": [
+      "set subtotal to 2 + 3 * 4",
+      "say subtotal",
+      "set grouped to (2 + 3) * 4",
+      "say grouped"
+    ],
+    "description": "Insert an integer arithmetic example using operator precedence"
+  },
+  "Numeric comparison block": {
+    "prefix": "unxcompare",
+    "body": [
+      "if ${1:score} >= ${2:10}",
+      "    say \"${3:At least ten}\"",
+      "else",
+      "    say \"${4:Below ten}\"",
+      "end"
+    ],
+    "description": "Insert a numeric comparison with an else branch"
+  },
   "Comment": {
     "prefix": "comment",
     "body": "# ${1:comment}",
