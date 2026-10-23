@@ -59,7 +59,7 @@ end
 if score >= 10 say "At least ten"
 ```
 
-The current integer-expression preview supports `+`, `-`, `*`, `/`, `%`, unary minus, parentheses, and numeric comparisons `>`, `<`, `>=`, `<=`, `==`, and `!=`. It rejects division by zero, integer overflow, undefined numeric variables, and string values used as numbers. This is an early 0.2 preview; see the draft specification for current limitations.
+The current integer-expression preview supports `+`, `-`, `*`, `/`, `%`, unary minus, parentheses, and numeric comparisons `>`, `<`, `>=`, `<=`, `==`, and `!=`. It rejects division by zero, integer overflow, undefined numeric variables, and string values used as numbers. This is an early 0.2 preview; see the draft specification for current limitations. A runnable example is available at [`examples/numbers/main.unxc`](examples/numbers/main.unxc).
 
 ## Roadmap and documentation
 
