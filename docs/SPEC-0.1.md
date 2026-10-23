@@ -42,9 +42,17 @@ blank-line    = whitespace ;
 comment-line  = whitespace, "#", { any-character-except-newline } ;
 statement-line = whitespace, statement, [ whitespace, inline-comment ], whitespace ;
 inline-comment = "#", { any-character-except-newline } ;
-statement     = say-string | say-variable | set-string | if-equals-say | if-block | else-line | end-line | open-window | set-window-size | button-statement ;
+statement     = say-string | say-variable | set-string | set-number | if-equals-say | if-block | if-numeric-say | if-numeric-block | else-line | end-line | open-window | set-window-size | button-statement ;
 if-equals-say = "if", space, identifier, space, "equals", space, string, space, "say", space, ( string | identifier ) ;
 if-block      = "if", space, identifier, space, "equals", space, string ;
+if-numeric-say = "if", space, identifier, space, comparison, space, expression, space, "say", space, ( string | identifier ) ;
+if-numeric-block = "if", space, identifier, space, comparison, space, expression ;
+comparison    = ">" | "<" | ">=" | "<=" | "==" | "!=" ;
+expression    = term, { ("+" | "-"), term } ;
+term          = unary, { ("*" | "/" | "%"), unary } ;
+unary         = [ "-" ], primary ;
+primary       = integer | identifier | "(", expression, ")" ;
+integer       = digit, { digit } ;
 else-line     = "else" ;
 end-line      = "end" ;
 open-window   = "open", space, "window", space, string ;
@@ -53,6 +61,7 @@ button-statement = "button", space, string, space, "say", space, ( string | iden
 say-string    = "say", space, string ;
 say-variable  = "say", space, identifier ;
 set-string    = "set", space, identifier, space, "to", space, ( string | identifier ) ;
+set-number    = "set", space, identifier, space, "to", space, expression ;
 string        = '"', { string-character | escape }, '"' ;
 escape        = '\\', ( '\\' | '"' | 'n' | 't' ) ;
 identifier    = ( letter | "_" ), { letter | digit | "_" } ;
@@ -60,9 +69,9 @@ space         = " ", { whitespace } ;
 whitespace    = " " | "\t" ;
 ```
 
-The grammar is intentionally limited: strings are the only value type and `set` accepts a string literal or the name of an existing variable rather than a general expression. Conditions support exact string equality only. Multi-line blocks support nesting, optional `else`, and a required `end`; they do not yet support compound conditions, Boolean operators, or expressions. GUI statements are experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
+The original 0.1 subset stores strings and supports exact string equality. The current 0.2 preview additionally supports integer expressions in numeric assignments and numeric comparisons against a variable. Numeric expressions are limited to integer literals, numeric variables, unary minus, parentheses, and `+`, `-`, `*`, `/`, and `%`; decimal numbers, Boolean values, compound conditions, loops, and functions are not implemented. Multi-line blocks support nesting, optional `else`, and a required `end`. GUI statements remain experimental. The current desktop window supports text and basic clickable buttons that update a status message; button messages may be string literals or existing variables, resolved before the window opens. Text inputs and portable platform-independent widgets are not implemented. A string may contain escaped quote, backslash, newline, and tab. Unknown or malformed escapes are errors. The implementation should reject malformed input rather than guess at its meaning. Diagnostics use 1-based line and column positions. Keywords are reserved and cannot be used as variable identifiers.
 
-Future syntax such as numbers, arithmetic, loops, and functions requires a language-versioned design and parser tests before it becomes part of the supported language.
+The numeric-expression preview is incremental rather than a finalized compatibility contract. Loops, functions, Boolean values, and richer control flow still require a versioned design and parser tests before implementation.
 
 ## Language 0.2 numeric-expression preview
 
