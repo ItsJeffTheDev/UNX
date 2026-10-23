@@ -190,6 +190,9 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             offset += width;
             continue;
         }
+        if first == '=' || first == '!' {
+            return Err(format!("line {line_no}, column {column}: unexpected token '{first}'"));
+        }
         let token_start = offset;
         while offset < line.len() {
             let ch = line[offset..].chars().next().expect("offset is within line");
