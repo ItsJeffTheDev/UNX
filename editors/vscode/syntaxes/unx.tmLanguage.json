@@ -14,6 +14,12 @@
       "include": "#constants"
     },
     {
+      "include": "#numbers"
+    },
+    {
+      "include": "#operators"
+    },
+    {
       "include": "#variables"
     }
   ],
@@ -54,6 +60,14 @@
     "constants": {
       "name": "constant.language.unx",
       "match": "\\b(true|false|null)\\b"
+    },
+    "numbers": {
+      "name": "constant.numeric.integer.unx",
+      "match": "\\b[0-9]+\\b"
+    },
+    "operators": {
+      "name": "keyword.operator.arithmetic.unx",
+      "match": ">=|<=|==|!=|[+\\-*/%><()]"
     },
     "variables": {
       "name": "variable.other.unx",
