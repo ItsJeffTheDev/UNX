@@ -54,7 +54,7 @@ Tasks:
 - [x] Test malformed ZIPs, missing manifests, invalid JSON, missing entry files, invalid UTF-8, and unsupported manifest versions.
 - [x] Validate package paths by components; reject absolute paths and parent traversal without rejecting harmless filenames just because they contain two dots.
 - [x] Set limits for manifest (1 MiB), source (10 MiB), package file size (20 MiB), and package entry count (exactly two).
-- [ ] Make package output deterministic where practical.
+- [x] Make package output deterministic where practical by fixing ZIP timestamps and file permissions; integration tests compare repeated package bytes.
 - [x] Return clear diagnostics and non-zero exit codes for tested invalid inputs.
 - [x] Add and test help and version output; document success, command-failure, and usage-error exit codes.
 - [x] Test that inspect reports package contents without starting the application.
