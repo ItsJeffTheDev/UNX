@@ -23,9 +23,9 @@ Principles:
 
 The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-23, GitHub Actions completed successfully on Windows, macOS, and Ubuntu, including Clippy, `cargo build`, and `cargo test` (latest verified run: [#158](https://github.com/ItsJeffTheDev/UNX/actions/runs/39976371144)). A non-blocking `cargo fmt --all -- --check` audit is also present; formatting enforcement is not yet blocking. Dependabot is configured to propose weekly Cargo dependency updates and monthly GitHub Actions updates.
 
-Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, nested multi-line exact-string `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
+Implemented today: full-line and trailing comments, string variables and variable copying, integer arithmetic (`+`, `-`, `*`, `/`, `%`) with precedence and parentheses, numeric comparisons (`>`, `<`, `>=`, `<=`, `==`, `!=`) in single-line and block conditions, single-line exact-string `if` conditions, nested multi-line `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
 
-Not yet implemented: committed Cargo.lock, locked builds, full CI formatting/lint gates, mature parser/value model, arithmetic and control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. CLI integration tests cover source validation, direct execution, pack → inspect → run, invalid source rejection, manifest traversal, malformed ZIPs, duplicate ZIP entry names, missing/invalid manifests, unsupported package versions, missing entry files, invalid UTF-8, and unsafe ZIP entry paths. Duplicate-entry rejection is tested using a handcrafted ZIP fixture because the standard test ZIP writer does not allow duplicate names. The current interpreter is not a hardened sandbox.
+Not yet implemented: committed Cargo.lock, locked builds, full CI formatting/lint gates, mature parser/value model, decimal and Boolean values, compound conditions and broader control flow, stable public package specification, Windows GUI/installer, dependency management, a hardened security boundary, signatures, and release automation. CLI integration tests cover source validation, direct execution, pack → inspect → run, invalid source rejection, manifest traversal, malformed ZIPs, duplicate ZIP entry names, missing/invalid manifests, unsupported package versions, missing entry files, invalid UTF-8, and unsafe ZIP entry paths. Duplicate-entry rejection is tested using a handcrafted ZIP fixture because the standard test ZIP writer does not allow duplicate names. The current interpreter is not a hardened sandbox.
 
 ---
 
@@ -70,11 +70,11 @@ Tasks:
 Tasks:
 - [ ] Publish lexical rules and a versioned grammar.
 - [ ] Define identifiers, case sensitivity, whitespace, comments, escapes, and line endings.
-- [ ] Implement a tokenizer and parser with source spans (line and column).
+- [x] Extend tokenization and expression parsing with source columns for integer literals and arithmetic operators; continue toward a full syntax tree and richer diagnostics.
 - [ ] Build a small syntax tree instead of parsing statements ad hoc.
-- [ ] Define runtime values, conversions, assignment, and variable scope.
-- [ ] Add numeric literals and arithmetic.
-- [ ] Add Boolean values and comparisons.
+- [ ] Replace string-backed storage with a tagged runtime value model; define conversions, assignment, and variable scope.
+- [x] Add integer literals, unary minus, arithmetic precedence, parentheses, and overflow/division-by-zero diagnostics.
+- [x] Add numeric comparisons for single-line and block conditions; [ ] add Boolean values and compound conditions.
 - [ ] Add if/else and bounded loops once expression semantics are stable.
 - [ ] Add functions and return values after control flow works.
 - [ ] Make runtime errors identify the source location.
@@ -237,9 +237,9 @@ Do not schedule 1.0 by date alone. Release when the gates are met.
 3. Add integration tests for pack → inspect → run and malformed packages.
 4. Harden path and manifest validation with regression tests.
 5. Add formatting and lint checks to CI.
-6. Implement tokenizer/parser with source locations before adding many keywords.
+6. Replace string-backed variables with a tagged runtime value model and add Boolean expressions.
 7. Finalize v0.2 language and package specifications.
-8. Add numbers, expressions, comparisons, and conditionals in tested increments.
+8. Extend the expression grammar and add loops in tested increments.
 9. Add project scaffolding and better diagnostics.
 10. Start Windows packaging/UI prototyping once core CLI/package behavior is dependable.
 
