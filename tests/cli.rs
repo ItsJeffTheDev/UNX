@@ -71,6 +71,65 @@ fn run_executes_source_and_prints_output() {
     fs::remove_dir_all(dir).unwrap();
 }
 
+
+#[test]
+fn integer_arithmetic_respects_precedence_parentheses_and_unary_minus() {
+    let dir = temp_dir("arithmetic");
+    let source = dir.join("arithmetic.unxc");
+    fs::write(
+        &source,
+        "set total to 2 + 3 * 4\nsay total\
+\nset grouped to (2 + 3) * 4\nsay grouped\
+\nset negative to -7 + 2\nsay negative\
+\nset remainder to 17 % 5\nsay remainder\n",
+    ).unwrap();
+
+    let result = unx(&["run", source.to_str().unwrap()]);
+    assert!(result.status.success(), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "14\n20\n-5\n2\n");
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn numeric_comparisons_support_blocks_single_line_and_expression_rhs() {
+    let dir = temp_dir("numeric-comparisons");
+    let source = dir.join("comparisons.unxc");
+    fs::write(
+        &source,
+        "set score to 10\
+\nif score > 2 + 3\
+\n  say \"greater\"\
+\nelse\
+\n  say \"not greater\"\
+\nend\
+\nif score >= 10 say \"at least ten\"\
+\nif score == 9 say \"wrong equality\"\
+\nif score != 10 say \"wrong inequality\"\n",
+    ).unwrap();
+
+    let result = unx(&["run", source.to_str().unwrap()]);
+    assert!(result.status.success(), "{}", text(&result.stderr));
+    assert_eq!(text(&result.stdout), "greater\nat least ten\n");
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
+fn numeric_expressions_report_division_by_zero_and_type_errors() {
+    let dir = temp_dir("numeric-errors");
+    let division = dir.join("division.unxc");
+    fs::write(&division, "set value to 12 / 0\n").unwrap();
+    let result = unx(&["run", division.to_str().unwrap()]);
+    assert!(!result.status.success());
+    assert!(text(&result.stderr).contains("division by zero"));
+
+    let type_error = dir.join("type-error.unxc");
+    fs::write(&type_error, "set name to \"UNX\"\nset value to name + 1\n").unwrap();
+    let result = unx(&["run", type_error.to_str().unwrap()]);
+    assert!(!result.status.success());
+    assert!(text(&result.stderr).contains("not an integer"));
+    fs::remove_dir_all(dir).unwrap();
+}
+
 #[test]
 fn pack_inspect_and_run_work_end_to_end() {
     let dir = temp_dir("package-flow");
