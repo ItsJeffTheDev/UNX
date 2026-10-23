@@ -19,7 +19,7 @@ Expected sample output includes `Hello from` and `UNX`. The `pack` command creat
 
 ## Continuous integration
 
-GitHub Actions runs `cargo build` and `cargo test` on pushes to `main`, pull requests, and manual workflow dispatches. The `cli` integration-test target exercises real subprocess invocations of the CLI, including source checking, direct execution, package round-tripping, and malformed-package rejection. Check the current result on the [Actions page](https://github.com/ItsJeffTheDev/UNX/actions).
+GitHub Actions runs Clippy (`cargo clippy --all-targets --all-features -- -D warnings`), `cargo build`, and `cargo test` on pushes to `main`, pull requests, and manual workflow dispatches. It also runs `cargo fmt --all -- --check` as a non-blocking audit while the existing formatting baseline is being cleaned up. The `cli` integration-test target exercises real subprocess invocations of the CLI, including source checking, direct execution, package round-tripping, and malformed-package rejection. Check the current result on the [Actions page](https://github.com/ItsJeffTheDev/UNX/actions).
 
 Until `Cargo.lock` is committed, builds may resolve newer compatible dependency versions over time. Do not treat this prototype as a hardened sandbox, and do not run packages from untrusted sources.
 
