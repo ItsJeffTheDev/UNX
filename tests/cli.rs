@@ -89,7 +89,7 @@ fn pack_inspect_and_run_work_end_to_end() {
     let inspect = unx(&["inspect", package.to_str().unwrap()]);
     assert!(inspect.status.success(), "{}", text(&inspect.stderr));
     let inspected = text(&inspect.stdout);
-    assert!(inspected.contains("\\\"id\\\": \\\"org.example.integration\\\""));
+    assert!(inspected.contains("\"id\": \"org.example.integration\""));
     assert!(inspected.contains("--- Entry source: main.unx ---"));
     assert!(inspected.contains("say \"PACKAGE_OUTPUT\""));
     assert!(!text(&inspect.stderr).contains("Running Integration App"));
