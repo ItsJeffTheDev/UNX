@@ -609,7 +609,7 @@ fn reject_duplicate_zip_entries(path: &Path) -> Result<(), String> {
     let search_start = bytes.len().saturating_sub(22 + u16::MAX as usize);
     let eocd = (search_start..=bytes.len().saturating_sub(4))
         .rev()
-        .find(|&offset| bytes.get(offset..offset + 4) == Some(b"PK\\x05\\x06"))
+        .find(|&offset| bytes.get(offset..offset + 4) == Some(b"PK\x05\x06"))
         .ok_or_else(|| "invalid ZIP package: missing end-of-central-directory record".to_string())?;
     if eocd + 22 > bytes.len() {
         return Err("invalid ZIP package: truncated end-of-central-directory record".into());
@@ -626,7 +626,7 @@ fn reject_duplicate_zip_entries(path: &Path) -> Result<(), String> {
     let mut cursor = central_offset;
     let mut names = std::collections::HashSet::new();
     for _ in 0..entries {
-        if cursor + 46 > central_end || bytes.get(cursor..cursor + 4) != Some(b"PK\\x01\\x02") {
+        if cursor + 46 > central_end || bytes.get(cursor..cursor + 4) != Some(b"PK\x01\x02") {
             return Err("invalid ZIP package: malformed central directory".into());
         }
         let name_len = u16::from_le_bytes([bytes[cursor + 28], bytes[cursor + 29]]) as usize;
