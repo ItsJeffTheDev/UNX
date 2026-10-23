@@ -77,9 +77,9 @@ The size limits on manifest and source are checked against the ZIP entry's repor
 Use the CLI from the repository root:
 
 ```powershell
-cargo run -- pack .\\examples\\hello .\\Hello.unx
-cargo run -- inspect .\\Hello.unx
-cargo run -- run .\\Hello.unx
+cargo run -- pack .\examples\hello .\Hello.unx
+cargo run -- inspect .\Hello.unx
+cargo run -- run .\Hello.unx
 ```
 
 The pack command writes the manifest and source text into a ZIP archive using Deflate compression. It sets fixed ZIP modification timestamps and file permissions so repeated packaging of the same project with the same build produces byte-identical output; this behavior has an integration regression test. Byte-for-byte identity across different ZIP/compression-library versions is not yet a compatibility guarantee.
