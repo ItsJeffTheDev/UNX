@@ -606,23 +606,37 @@ fn reject_duplicate_zip_entries(path: &Path) -> Result<(), String> {
     // zip::ZipArchive may expose duplicate central-directory names as a single
     // logical entry, so inspect the central directory before opening the archive.
     let bytes = fs::read(path).map_err(|e| format!("cannot read package: {e}"))?;
-    let search_start = bytes.len().saturating_sub(22 + u16::MAX as usize);
-    let eocd = (search_start..=bytes.len().saturating_sub(4))
-        .rev()
-        .find(|&offset| bytes.get(offset..offset + 4) == Some(b"PK\x05\x06"))
-        .ok_or_else(|| "invalid ZIP package: missing end-of-central-directory record".to_string())?;
-    if eocd + 22 > bytes.len() {
-        return Err("invalid ZIP package: truncated end-of-central-directory record".into());
+    if bytes.len() < 22 {
+        return Err("invalid ZIP package: missing end-of-central-directory record".into());
     }
+    let search_start = bytes.len().saturating_sub(22 + u16::MAX as usize);
+    // A signature can occur inside the ZIP comment, so only accept an EOCD
+    // whose declared comment length reaches exactly to the end of the file.
+    let eocd = (search_start..=bytes.len() - 22)
+        .rev()
+        .find(|&offset| {
+            bytes.get(offset..offset + 4) == Some(b"PK\x05\x06")
+                && offset + 22 + u16::from_le_bytes([bytes[offset + 20], bytes[offset + 21]]) as usize == bytes.len()
+        })
+        .ok_or_else(|| "invalid ZIP package: missing or malformed end-of-central-directory record".to_string())?;
+    let disk_number = u16::from_le_bytes([bytes[eocd + 4], bytes[eocd + 5]]);
+    let central_disk = u16::from_le_bytes([bytes[eocd + 6], bytes[eocd + 7]]);
+    let entries_on_disk = u16::from_le_bytes([bytes[eocd + 8], bytes[eocd + 9]]) as usize;
     let entries = u16::from_le_bytes([bytes[eocd + 10], bytes[eocd + 11]]) as usize;
+    if disk_number != 0 || central_disk != 0 || entries_on_disk != entries {
+        return Err("multi-disk ZIP packages are not supported".into());
+    }
     let central_size = u32::from_le_bytes(bytes[eocd + 12..eocd + 16].try_into().unwrap()) as usize;
     let central_offset = u32::from_le_bytes(bytes[eocd + 16..eocd + 20].try_into().unwrap()) as usize;
     if entries == u16::MAX as usize || central_size == u32::MAX as usize || central_offset == u32::MAX as usize {
         return Err("ZIP64 package directories are not supported".into());
     }
     let central_end = central_offset.checked_add(central_size)
-        .filter(|&end| end <= bytes.len())
+        .filter(|&end| end <= eocd)
         .ok_or_else(|| "invalid ZIP package: central directory is out of bounds".to_string())?;
+    if central_end != eocd {
+        return Err("invalid ZIP package: central directory does not end at the EOCD record".into());
+    }
     let mut cursor = central_offset;
     let mut names = std::collections::HashSet::new();
     for _ in 0..entries {
