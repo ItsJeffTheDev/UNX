@@ -64,6 +64,28 @@ The grammar is intentionally limited: strings are the only value type and `set` 
 
 Future syntax such as numbers, arithmetic, loops, and functions requires a language-versioned design and parser tests before it becomes part of the supported language.
 
+## Language 0.2 numeric-expression preview
+
+The current prototype also accepts integer arithmetic in numeric assignments and numeric comparisons in `if` statements. This is an incremental preview of the planned 0.2 language core, not yet a finalized compatibility contract.
+
+Examples:
+
+```text
+set subtotal to 2 + 3 * 4
+say subtotal
+set grouped to (2 + 3) * 4
+say grouped
+set score to 10
+if score > 5
+  say "Score is above five"
+else
+  say "Score is five or below"
+end
+if score >= 10 say "At least ten"
+```
+
+Supported integer operators are unary minus, `+`, `-`, `*`, `/`, and `%`. Multiplication, division, and remainder bind more tightly than addition and subtraction; parentheses override precedence, and operators at the same level associate left to right. Numeric comparisons support `>`, `<`, `>=`, `<=`, `==`, and `!=`. A comparison's left operand is currently a variable; its right operand may be an integer expression. Variables used in arithmetic or numeric comparisons must contain integer values. Integer overflow, division by zero, undefined variables, and using a string variable as a number produce errors. Decimal numbers, booleans, compound logical conditions, and a general-purpose expression syntax remain future work.
+
 ## Manifest v1
 
 ```json
