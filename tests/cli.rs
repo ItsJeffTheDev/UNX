@@ -106,7 +106,7 @@ fn packing_identical_project_twice_produces_identical_bytes() {
     let project = dir.join("project");
     let first = dir.join("first.unx");
     let second = dir.join("second.unx");
-    write_project(&project, "say \"REPRODUCIBLE\"\\n");
+    write_project(&project, "say \"REPRODUCIBLE\"\n");
 
     for output in [&first, &second] {
         let result = unx(&[
