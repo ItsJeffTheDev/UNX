@@ -50,6 +50,7 @@ say product_copy # Inline comments are supported too
 - [Contributing guide](CONTRIBUTING.md)
 - [Full project roadmap](docs/ROADMAP.md)
 - [Language specification 0.1](docs/SPEC-0.1.md)
+- [Prototype .unx package format v1](docs/UNX-PACKAGE-FORMAT.md)
 - [Build and test guide](docs/BUILD-AND-TEST.md)
 - [Rust toolchain and dependency reproducibility policy](docs/RUST-TOOLCHAIN.md)
 
