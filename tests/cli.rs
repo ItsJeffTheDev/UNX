@@ -86,12 +86,16 @@ set negative to -7 + 2
 say negative
 set remainder to 17 % 5
 say remainder
+set difference to 10 - 3
+say difference
+set division to 20 / 5
+say division
 "#,
     ).unwrap();
 
     let result = unx(&["run", source.to_str().unwrap()]);
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "14\n20\n-5\n2\n");
+    assert_eq!(text(&result.stdout), "14\n20\n-5\n2\n7\n4\n");
     fs::remove_dir_all(dir).unwrap();
 }
 
@@ -108,6 +112,8 @@ else
   say "not greater"
 end
 if score >= 10 say "at least ten"
+if score < 11 say "less than eleven"
+if score <= 10 say "at most ten"
 if score == 9 say "wrong equality"
 if score != 10 say "wrong inequality"
 "#,
@@ -115,7 +121,7 @@ if score != 10 say "wrong inequality"
 
     let result = unx(&["run", source.to_str().unwrap()]);
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "greater\nat least ten\n");
+    assert_eq!(text(&result.stdout), "greater\nat least ten\nless than eleven\nat most ten\n");
     fs::remove_dir_all(dir).unwrap();
 }
 
