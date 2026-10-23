@@ -64,8 +64,11 @@ enum Statement {
     SayVariable { name: String, line: usize, column: usize },
     SetString { name: String, value: String, line: usize, column: usize },
     SetVariable { name: String, source: String, line: usize, column: usize },
+    SetNumber { name: String, expression: Expr, line: usize, column: usize },
     IfEqualsSay { variable: String, expected: String, message: ConditionalMessage, line: usize, column: usize },
     IfEqualsBegin { variable: String, expected: String, line: usize, column: usize },
+    IfCompareSay { variable: String, operator: ComparisonOperator, expression: Expr, message: ConditionalMessage, line: usize, column: usize },
+    IfCompareBegin { variable: String, operator: ComparisonOperator, expression: Expr, line: usize, column: usize },
     ElseBlock { line: usize, column: usize },
     EndBlock { line: usize, column: usize },
     OpenWindow { title: String, line: usize, column: usize },
@@ -95,6 +98,20 @@ enum TokenKind {
     Width,
     Height,
     Button,
+    Number(i64),
+    Plus,
+    Minus,
+    Star,
+    Slash,
+    Percent,
+    LeftParen,
+    RightParen,
+    Greater,
+    Less,
+    GreaterEqual,
+    LessEqual,
+    EqualEqual,
+    NotEqual,
     Identifier(String),
     String(String),
 }
@@ -152,10 +169,31 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             }
             continue;
         }
+        let operator = match first {
+            '+' => Some((TokenKind::Plus, 1)),
+            '-' => Some((TokenKind::Minus, 1)),
+            '*' => Some((TokenKind::Star, 1)),
+            '/' => Some((TokenKind::Slash, 1)),
+            '%' => Some((TokenKind::Percent, 1)),
+            '(' => Some((TokenKind::LeftParen, 1)),
+            ')' => Some((TokenKind::RightParen, 1)),
+            '>' if rest.starts_with(">=") => Some((TokenKind::GreaterEqual, 2)),
+            '<' if rest.starts_with("<=") => Some((TokenKind::LessEqual, 2)),
+            '=' if rest.starts_with("==") => Some((TokenKind::EqualEqual, 2)),
+            '!' if rest.starts_with("!=") => Some((TokenKind::NotEqual, 2)),
+            '>' => Some((TokenKind::Greater, 1)),
+            '<' => Some((TokenKind::Less, 1)),
+            _ => None,
+        };
+        if let Some((kind, width)) = operator {
+            tokens.push(Token { kind, column });
+            offset += width;
+            continue;
+        }
         let token_start = offset;
         while offset < line.len() {
             let ch = line[offset..].chars().next().expect("offset is within line");
-            if ch == ' ' || ch == '\t' { break; }
+            if ch == ' ' || ch == '\t' || "+-*/%()><=!".contains(ch) { break; }
             offset += ch.len_utf8();
         }
         let word = &line[token_start..offset];
@@ -172,6 +210,7 @@ fn tokenize_line(line: &str, line_no: usize, base_column: usize) -> Result<Vec<T
             "width" => TokenKind::Width,
             "height" => TokenKind::Height,
             "button" => TokenKind::Button,
+            _ if word.parse::<i64>().is_ok() => TokenKind::Number(word.parse::<i64>().expect("integer was parsed successfully")),
             _ if word.chars().all(|c| c == '_' || c.is_ascii_alphanumeric()) => TokenKind::Identifier(word.to_string()),
             _ => return Err(format!("line {line_no}, column {column}: unexpected token '{word}'")),
         };
@@ -184,6 +223,130 @@ fn is_valid_identifier(name: &str) -> bool {
     !name.is_empty() && name.chars().enumerate().all(|(i, c)| {
         c == '_' || (c.is_ascii_alphanumeric() && (i > 0 || !c.is_ascii_digit()))
     })
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum Expr {
+    Number(i64),
+    Variable(String),
+    Negate(Box<Expr>),
+    Binary(Box<Expr>, ArithmeticOperator, Box<Expr>),
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum ArithmeticOperator { Add, Subtract, Multiply, Divide, Remainder }
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+enum ComparisonOperator { Greater, Less, GreaterEqual, LessEqual, Equal, NotEqual }
+
+fn comparison_operator(kind: &TokenKind) -> Option<ComparisonOperator> {
+    match kind {
+        TokenKind::Greater => Some(ComparisonOperator::Greater),
+        TokenKind::Less => Some(ComparisonOperator::Less),
+        TokenKind::GreaterEqual => Some(ComparisonOperator::GreaterEqual),
+        TokenKind::LessEqual => Some(ComparisonOperator::LessEqual),
+        TokenKind::EqualEqual => Some(ComparisonOperator::Equal),
+        TokenKind::NotEqual => Some(ComparisonOperator::NotEqual),
+        _ => None,
+    }
+}
+
+fn parse_expression(tokens: &[Token], index: &mut usize, line: usize) -> Result<Expr, String> {
+    parse_additive(tokens, index, line)
+}
+
+fn parse_additive(tokens: &[Token], index: &mut usize, line: usize) -> Result<Expr, String> {
+    let mut expression = parse_multiplicative(tokens, index, line)?;
+    loop {
+        let operator = match tokens.get(*index).map(|token| &token.kind) {
+            Some(TokenKind::Plus) => ArithmeticOperator::Add,
+            Some(TokenKind::Minus) => ArithmeticOperator::Subtract,
+            _ => break,
+        };
+        *index += 1;
+        let right = parse_multiplicative(tokens, index, line)?;
+        expression = Expr::Binary(Box::new(expression), operator, Box::new(right));
+    }
+    Ok(expression)
+}
+
+fn parse_multiplicative(tokens: &[Token], index: &mut usize, line: usize) -> Result<Expr, String> {
+    let mut expression = parse_unary(tokens, index, line)?;
+    loop {
+        let operator = match tokens.get(*index).map(|token| &token.kind) {
+            Some(TokenKind::Star) => ArithmeticOperator::Multiply,
+            Some(TokenKind::Slash) => ArithmeticOperator::Divide,
+            Some(TokenKind::Percent) => ArithmeticOperator::Remainder,
+            _ => break,
+        };
+        *index += 1;
+        let right = parse_unary(tokens, index, line)?;
+        expression = Expr::Binary(Box::new(expression), operator, Box::new(right));
+    }
+    Ok(expression)
+}
+
+fn parse_unary(tokens: &[Token], index: &mut usize, line: usize) -> Result<Expr, String> {
+    if matches!(tokens.get(*index).map(|token| &token.kind), Some(TokenKind::Minus)) {
+        *index += 1;
+        return Ok(Expr::Negate(Box::new(parse_unary(tokens, index, line)?)));
+    }
+    parse_primary(tokens, index, line)
+}
+
+fn parse_primary(tokens: &[Token], index: &mut usize, line: usize) -> Result<Expr, String> {
+    let token = tokens.get(*index).ok_or_else(|| format!("line {line}: expected a number, numeric variable, or parenthesized expression"))?;
+    *index += 1;
+    match &token.kind {
+        TokenKind::Number(value) => Ok(Expr::Number(*value)),
+        TokenKind::Identifier(name) if is_valid_identifier(name) => Ok(Expr::Variable(name.clone())),
+        TokenKind::LeftParen => {
+            let expression = parse_expression(tokens, index, line)?;
+            if !matches!(tokens.get(*index).map(|token| &token.kind), Some(TokenKind::RightParen)) {
+                return Err(format!("line {line}, column {}: expected ')' to close expression", token.column));
+            }
+            *index += 1;
+            Ok(expression)
+        }
+        _ => Err(format!("line {line}, column {}: expected a number, numeric variable, or parenthesized expression", token.column)),
+    }
+}
+
+fn evaluate_expression(expression: &Expr, vars: &HashMap<String, String>, line: usize, column: usize) -> Result<i64, String> {
+    match expression {
+        Expr::Number(value) => Ok(*value),
+        Expr::Variable(name) => {
+            let value = vars.get(name).ok_or_else(|| format!("line {line}, column {column}: undefined variable '{name}'"))?;
+            value.parse::<i64>().map_err(|_| format!("line {line}, column {column}: variable '{name}' is not an integer"))
+        }
+        Expr::Negate(inner) => evaluate_expression(inner, vars, line, column)?
+            .checked_neg().ok_or_else(|| format!("line {line}, column {column}: integer overflow in negation")),
+        Expr::Binary(left, operator, right) => {
+            let left = evaluate_expression(left, vars, line, column)?;
+            let right = evaluate_expression(right, vars, line, column)?;
+            let value = match operator {
+                ArithmeticOperator::Add => left.checked_add(right),
+                ArithmeticOperator::Subtract => left.checked_sub(right),
+                ArithmeticOperator::Multiply => left.checked_mul(right),
+                ArithmeticOperator::Divide if right == 0 => return Err(format!("line {line}, column {column}: division by zero")),
+                ArithmeticOperator::Remainder if right == 0 => return Err(format!("line {line}, column {column}: remainder by zero")),
+                ArithmeticOperator::Divide => left.checked_div(right),
+                ArithmeticOperator::Remainder => left.checked_rem(right),
+            };
+            value.ok_or_else(|| format!("line {line}, column {column}: integer overflow in arithmetic expression"))
+        }
+    }
+}
+
+fn compare_numbers(left: i64, operator: ComparisonOperator, right: i64) -> bool {
+    match operator {
+        ComparisonOperator::Greater => left > right,
+        ComparisonOperator::Less => left < right,
+        ComparisonOperator::GreaterEqual => left >= right,
+        ComparisonOperator::LessEqual => left <= right,
+        ComparisonOperator::Equal => left == right,
+        ComparisonOperator::NotEqual => left != right,
+    }
 }
 
 fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
@@ -213,6 +376,37 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                     blocks.push((line_no, false));
                     statements.push(Statement::IfEqualsBegin { variable, expected, line: line_no, column: first.column });
                     continue;
+                }
+                if tokens.len() >= 4 {
+                    if let Some(operator) = comparison_operator(&tokens[2].kind) {
+                        let variable = match &tokens[1].kind {
+                            TokenKind::Identifier(name) if is_valid_identifier(name) => name.clone(),
+                            _ => return Err(format!("line {line_no}, column {}: expected a numeric variable after 'if'", tokens[1].column)),
+                        };
+                        let say_index = tokens.iter().position(|token| token.kind == TokenKind::Say);
+                        let expression_end = say_index.unwrap_or(tokens.len());
+                        let mut expression_index = 3;
+                        let expression = parse_expression(&tokens[3..expression_end], &mut expression_index, line_no)?;
+                        if expression_index != expression_end - 3 {
+                            let token = &tokens[3 + expression_index];
+                            return Err(format!("line {line_no}, column {}: unexpected token in comparison expression", token.column));
+                        }
+                        if let Some(say_index) = say_index {
+                            if say_index + 2 != tokens.len() {
+                                return Err(format!("line {line_no}, column {}: expected 'say' followed by a quoted message or variable", tokens[say_index].column));
+                            }
+                            let message = match &tokens[say_index + 1].kind {
+                                TokenKind::String(value) => ConditionalMessage::String(value.clone()),
+                                TokenKind::Identifier(name) if is_valid_identifier(name) => ConditionalMessage::Variable(name.clone()),
+                                _ => return Err(format!("line {line_no}, column {}: expected a quoted message or variable after 'say'", tokens[say_index + 1].column)),
+                            };
+                            statements.push(Statement::IfCompareSay { variable, operator, expression, message, line: line_no, column: first.column });
+                        } else {
+                            blocks.push((line_no, false));
+                            statements.push(Statement::IfCompareBegin { variable, operator, expression, line: line_no, column: first.column });
+                        }
+                        continue;
+                    }
                 }
                 if tokens.len() != 6 || tokens[2].kind != TokenKind::Equals || tokens[4].kind != TokenKind::Say {
                     return Err(format!("line {line_no}, column {}: expected 'if VARIABLE equals \"VALUE\"' for a block or 'if VARIABLE equals \"VALUE\" say \"MESSAGE\"' for a single-line condition", first.column));
@@ -315,7 +509,7 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                     }
                     continue;
                 }
-                if tokens.len() != 4 {
+                if tokens.len() < 4 {
                     return Err(format!("line {line_no}, column {}: expected 'set NAME to VALUE' or 'set window width/height to VALUE'", first.column + 4));
                 }
                 let name = match &tokens[1].kind {
@@ -326,15 +520,35 @@ fn parse_program(source: &str) -> Result<Vec<Statement>, String> {
                 if tokens[2].kind != TokenKind::To {
                     return Err(format!("line {line_no}, column {}: expected keyword 'to'", tokens[2].column));
                 }
-                match &tokens[3].kind {
-                    TokenKind::String(value) => statements.push(Statement::SetString {
-                        name: name.clone(), value: value.clone(), line: line_no, column: first.column,
-                    }),
-                    TokenKind::Identifier(source) if is_valid_identifier(source) => statements.push(Statement::SetVariable {
-                        name: name.clone(), source: source.clone(), line: line_no, column: first.column,
-                    }),
-                    TokenKind::Identifier(_) => return Err(format!("line {line_no}, column {}: invalid source variable name", tokens[3].column)),
-                    _ => return Err(format!("line {line_no}, column {}: expected a quoted string or variable name after 'to'", tokens[3].column)),
+                if matches!(&tokens[3].kind, TokenKind::String(_)) {
+                    if tokens.len() != 4 {
+                        return Err(format!("line {line_no}, column {}: unexpected token after string value", tokens[4].column));
+                    }
+                    if let TokenKind::String(value) = &tokens[3].kind {
+                        statements.push(Statement::SetString { name: name.clone(), value: value.clone(), line: line_no, column: first.column });
+                    }
+                } else if tokens.len() == 4 {
+                    match &tokens[3].kind {
+                        TokenKind::Identifier(source) if is_valid_identifier(source) => statements.push(Statement::SetVariable {
+                            name: name.clone(), source: source.clone(), line: line_no, column: first.column,
+                        }),
+                        TokenKind::Identifier(_) => return Err(format!("line {line_no}, column {}: invalid source variable name", tokens[3].column)),
+                        _ => {
+                            let mut expression_index = 0;
+                            let expression = parse_expression(&tokens[3..], &mut expression_index, line_no)?;
+                            if expression_index != tokens.len() - 3 {
+                                return Err(format!("line {line_no}, column {}: unexpected token in numeric expression", tokens[3 + expression_index].column));
+                            }
+                            statements.push(Statement::SetNumber { name: name.clone(), expression, line: line_no, column: first.column });
+                        }
+                    }
+                } else {
+                    let mut expression_index = 0;
+                    let expression = parse_expression(&tokens[3..], &mut expression_index, line_no)?;
+                    if expression_index != tokens.len() - 3 {
+                        return Err(format!("line {line_no}, column {}: unexpected token in numeric expression", tokens[3 + expression_index].column));
+                    }
+                    statements.push(Statement::SetNumber { name: name.clone(), expression, line: line_no, column: first.column });
                 }
             }
             _ => return Err(format!("line {line_no}, column {}: unknown statement", first.column)),
@@ -379,6 +593,19 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
                 conditions.push(ConditionalFrame { parent_active, condition, in_else: false });
                 continue;
             }
+            Statement::IfCompareBegin { variable, operator, expression, line, column } => {
+                let parent_active = conditions.iter().all(|frame| {
+                    frame.parent_active && if frame.in_else { !frame.condition } else { frame.condition }
+                });
+                let condition = if parent_active {
+                    let actual = vars.get(variable).ok_or_else(|| format!("line {line}, column {column}: undefined variable '{variable}'"))?;
+                    let actual = actual.parse::<i64>().map_err(|_| format!("line {line}, column {column}: variable '{variable}' is not an integer"))?;
+                    let expected = evaluate_expression(expression, &vars, *line, *column)?;
+                    compare_numbers(actual, *operator, expected)
+                } else { false };
+                conditions.push(ConditionalFrame { parent_active, condition, in_else: false });
+                continue;
+            }
             Statement::ElseBlock { line, column } => {
                 let Some(frame) = conditions.last_mut() else {
                     return Err(format!("line {line}, column {column}: 'else' without a matching 'if'"));
@@ -406,7 +633,7 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
         }
 
         match statement {
-            Statement::IfEqualsBegin { .. } | Statement::ElseBlock { .. } | Statement::EndBlock { .. } => unreachable!("handled above"),
+            Statement::IfEqualsBegin { .. } | Statement::IfCompareBegin { .. } | Statement::ElseBlock { .. } | Statement::EndBlock { .. } => unreachable!("handled above"),
             Statement::SayString { value, .. } => {
                 if window_title.is_some() {
                     window_lines.push(value.clone());
@@ -432,6 +659,10 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
                 })?;
                 vars.insert(name.clone(), value);
             }
+            Statement::SetNumber { name, expression, line, column } => {
+                let value = evaluate_expression(expression, &vars, *line, *column)?;
+                vars.insert(name.clone(), value.to_string());
+            }
             Statement::IfEqualsSay { variable, expected, message, line, column } => {
                 let actual = vars.get(variable).ok_or_else(|| {
                     format!("line {line}, column {column}: undefined variable '{variable}'")
@@ -448,6 +679,19 @@ fn execute_program(statements: &[Statement], print_output: bool) -> Result<(), S
                     } else if print_output {
                         println!("{output}");
                     }
+                }
+            }
+            Statement::IfCompareSay { variable, operator, expression, message, line, column } => {
+                let actual = vars.get(variable).ok_or_else(|| format!("line {line}, column {column}: undefined variable '{variable}'"))?;
+                let actual = actual.parse::<i64>().map_err(|_| format!("line {line}, column {column}: variable '{variable}' is not an integer"))?;
+                let expected = evaluate_expression(expression, &vars, *line, *column)?;
+                if compare_numbers(actual, *operator, expected) {
+                    let output = match message {
+                        ConditionalMessage::String(value) => value.clone(),
+                        ConditionalMessage::Variable(name) => vars.get(name).cloned().ok_or_else(|| format!("line {line}, column {column}: undefined variable '{name}'"))?,
+                    };
+                    if window_title.is_some() { window_lines.push(output); }
+                    else if print_output { println!("{output}"); }
                 }
             }
             Statement::OpenWindow { title, .. } => window_title = Some(title.clone()),
