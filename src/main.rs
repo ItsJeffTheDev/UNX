@@ -1256,4 +1256,102 @@ mod tests {
             assert!(is_safe_package_path(path), "path should be accepted: {path:?}");
         }
     }
+
+    fn crc32(bytes: &[u8]) -> u32 {
+        let mut crc = !0u32;
+        for byte in bytes {
+            crc ^= u32::from(*byte);
+            for _ in 0..8 {
+                crc = if crc & 1 == 1 {
+                    (crc >> 1) ^ 0xedb8_8320
+                } else {
+                    crc >> 1
+                };
+            }
+        }
+        !crc
+    }
+
+    fn push_u16(output: &mut Vec<u8>, value: u16) {
+        output.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_u32(output: &mut Vec<u8>, value: u32) {
+        output.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn write_zip_with_duplicate_names(path: &Path) {
+        // Emit a minimal stored ZIP directly: ZipWriter intentionally rejects
+        // duplicate names, but hostile archives can contain them.
+        let entries: [(&str, &[u8]); 2] = [
+            ("manifest.json", b"{}"),
+            ("manifest.json", b"{}"),
+        ];
+        let mut bytes = Vec::new();
+        let mut central = Vec::new();
+
+        for (name, contents) in entries {
+            let name_bytes = name.as_bytes();
+            let crc = crc32(contents);
+            let offset = bytes.len() as u32;
+
+            push_u32(&mut bytes, 0x0403_4b50);
+            push_u16(&mut bytes, 20);
+            push_u16(&mut bytes, 0);
+            push_u16(&mut bytes, 0);
+            push_u16(&mut bytes, 0);
+            push_u16(&mut bytes, 0);
+            push_u32(&mut bytes, crc);
+            push_u32(&mut bytes, contents.len() as u32);
+            push_u32(&mut bytes, contents.len() as u32);
+            push_u16(&mut bytes, name_bytes.len() as u16);
+            push_u16(&mut bytes, 0);
+            bytes.extend_from_slice(name_bytes);
+            bytes.extend_from_slice(contents);
+
+            push_u32(&mut central, 0x0201_4b50);
+            push_u16(&mut central, 20);
+            push_u16(&mut central, 20);
+            push_u16(&mut central, 0);
+            push_u16(&mut central, 0);
+            push_u16(&mut central, 0);
+            push_u16(&mut central, 0);
+            push_u32(&mut central, crc);
+            push_u32(&mut central, contents.len() as u32);
+            push_u32(&mut central, contents.len() as u32);
+            push_u16(&mut central, name_bytes.len() as u16);
+            push_u16(&mut central, 0);
+            push_u16(&mut central, 0);
+            push_u16(&mut central, 0);
+            push_u16(&mut central, 0);
+            push_u32(&mut central, 0);
+            push_u32(&mut central, offset);
+            central.extend_from_slice(name_bytes);
+        }
+
+        let central_offset = bytes.len() as u32;
+        bytes.extend_from_slice(&central);
+        let central_size = central.len() as u32;
+        push_u32(&mut bytes, 0x0605_4b50);
+        push_u16(&mut bytes, 0);
+        push_u16(&mut bytes, 0);
+        push_u16(&mut bytes, entries.len() as u16);
+        push_u16(&mut bytes, entries.len() as u16);
+        push_u32(&mut bytes, central_size);
+        push_u32(&mut bytes, central_offset);
+        push_u16(&mut bytes, 0);
+        std::fs::write(path, bytes).expect("write handcrafted duplicate-entry ZIP");
+    }
+
+    #[test]
+    fn package_reader_rejects_duplicate_zip_entry_names() {
+        let dir = unique_temp_dir("duplicate-entry");
+        let package = dir.join("duplicate.unx");
+        write_zip_with_duplicate_names(&package);
+
+        let error = load_package(&package).unwrap_err();
+        assert!(error.contains("duplicate ZIP entry"), "unexpected error: {error}");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
 }
