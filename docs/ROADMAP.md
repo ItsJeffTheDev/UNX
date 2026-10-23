@@ -21,7 +21,7 @@ Principles:
 
 ## Current baseline
 
-The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-23, GitHub Actions completed cargo build and cargo test successfully on Windows, macOS, and Ubuntu for commit `c237165`.
+The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-23, GitHub Actions completed Clippy, cargo build, and cargo test successfully on Windows, macOS, and Ubuntu for commit `941cd91`. A non-blocking `cargo fmt --all -- --check` audit is also present; formatting enforcement is not yet blocking.
 
 Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, nested multi-line exact-string `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
 
@@ -36,9 +36,11 @@ Not yet implemented: committed Cargo.lock, locked builds, full CI formatting/lin
 Tasks:
 - [ ] Generate and commit Cargo.lock.
 - [ ] After committing the lockfile, use cargo build --locked and cargo test --locked in CI.
-- [ ] Add cargo fmt --check and cargo clippy --all-targets --all-features -- -D warnings to CI, fixing issues they expose.
+- [x] Add cargo clippy --all-targets --all-features -- -D warnings to CI and keep it passing on Windows, macOS, and Ubuntu.
+- [ ] Format the existing Rust source and tests, then make cargo fmt --all -- --check a blocking CI gate (currently an informational, non-blocking audit).
 - [ ] Verify documented commands from a clean checkout.
-- [ ] Update README status to reflect the passing CI run.
+- [x] Update project baseline documentation to reflect passing cross-platform CI.
+- [ ] Generate and commit Cargo.lock, then switch CI to locked builds and tests.
 - [x] Add contribution instructions, bug/feature issue forms, and a pull-request template.
 - [x] Document the current stable-channel policy and the outstanding lockfile/CI limitations in `docs/RUST-TOOLCHAIN.md`.
 
