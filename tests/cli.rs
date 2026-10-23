@@ -44,8 +44,8 @@ fn check_accepts_valid_source_and_rejects_invalid_source() {
     let dir = temp_dir("check");
     let valid = dir.join("valid.unx");
     let invalid = dir.join("invalid.unx");
-    fs::write(&valid, "say \"valid\"\\n").unwrap();
-    fs::write(&invalid, "say missing\\n").unwrap();
+    fs::write(&valid, "say \"valid\"\n").unwrap();
+    fs::write(&invalid, "say missing\n").unwrap();
 
     let valid_result = unx(&["check", valid.to_str().unwrap()]);
     assert!(valid_result.status.success(), "{}", text(&valid_result.stderr));
@@ -62,11 +62,11 @@ fn check_accepts_valid_source_and_rejects_invalid_source() {
 fn run_executes_source_and_prints_output() {
     let dir = temp_dir("run");
     let source = dir.join("hello.unx");
-    fs::write(&source, "set name to \"UNX\"\\nsay \"Hello\"\\nsay name\\n").unwrap();
+    fs::write(&source, "set name to \"UNX\"\nsay \"Hello\"\nsay name\n").unwrap();
 
     let result = unx(&["run", source.to_str().unwrap()]);
     assert!(result.status.success(), "{}", text(&result.stderr));
-    assert_eq!(text(&result.stdout), "Hello\\nUNX\\n");
+    assert_eq!(text(&result.stdout), "Hello\nUNX\n");
 
     fs::remove_dir_all(dir).unwrap();
 }
@@ -76,7 +76,7 @@ fn pack_inspect_and_run_work_end_to_end() {
     let dir = temp_dir("package-flow");
     let project = dir.join("project");
     let package = dir.join("app.unx");
-    write_project(&project, "say \"PACKAGE_OUTPUT\"\\n");
+    write_project(&project, "say \"PACKAGE_OUTPUT\"\n");
 
     let pack = unx(&[
         "pack",
@@ -96,7 +96,7 @@ fn pack_inspect_and_run_work_end_to_end() {
 
     let run = unx(&["run", package.to_str().unwrap()]);
     assert!(run.status.success(), "{}", text(&run.stderr));
-    assert_eq!(text(&run.stdout), "PACKAGE_OUTPUT\\n");
+    assert_eq!(text(&run.stdout), "PACKAGE_OUTPUT\n");
     assert!(text(&run.stderr).contains("Running Integration App"));
 
     fs::remove_dir_all(dir).unwrap();
@@ -108,7 +108,7 @@ fn packing_identical_project_twice_produces_identical_bytes() {
     let project = dir.join("project");
     let first = dir.join("first.unx");
     let second = dir.join("second.unx");
-    write_project(&project, "say \"REPRODUCIBLE\"\\n");
+    write_project(&project, "say \"REPRODUCIBLE\"\n");
 
     for output in [&first, &second] {
         let result = unx(&[
@@ -132,7 +132,7 @@ fn pack_rejects_invalid_source_without_creating_package() {
     let dir = temp_dir("invalid-pack");
     let project = dir.join("project");
     let package = dir.join("bad.unx");
-    write_project(&project, "say missing\\n");
+    write_project(&project, "say missing\n");
 
     let result = unx(&[
         "pack",
@@ -224,7 +224,7 @@ fn inspect_rejects_invalid_package_fixtures() {
     let valid_manifest = br#"{"format":"UNX","format_version":1,"id":"org.example.test","name":"Test App","version":"0.1.0","entry":"main.unx","permissions":[]}"#;
     let unsupported_manifest = br#"{"format":"UNX","format_version":99,"id":"org.example.test","name":"Test App","version":"0.1.0","entry":"main.unx","permissions":[]}"#;
     let invalid_json = b"{ definitely not JSON";
-    let source = b"say \"safe\"\\n";
+    let source = b"say \"safe\"\n";
     let invalid_utf8 = [0xff, 0xfe, 0xfd];
 
     let fixtures: Vec<ArchiveFixture<'_>> = vec![
