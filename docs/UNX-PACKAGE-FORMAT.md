@@ -91,8 +91,9 @@ The pack command writes the manifest and source text into a ZIP archive using De
 - `permissions` is metadata only; the runtime does not currently provide an enforceable capability sandbox.
 - Inspecting a package parses its manifest and displays source, but is not a security scanner.
 - The runtime is not hardened against all denial-of-service or malicious-input attacks.
-- The duplicate-entry rejection path is implemented; a reliable duplicate-entry regression fixture is still outstanding.
+- Duplicate ZIP entry names are rejected by inspecting the central directory before the archive is loaded; a handcrafted regression fixture covers duplicate names.
+- ZIP64 central directories are currently rejected as unsupported. Packages requiring ZIP64 are outside the current prototype format.
 
 ## Open design work
 
-Before declaring the format stable, specify application ID syntax, version grammar, unknown-field policy, case-collision behavior across filesystems, future assets and dependencies, minimum runtime version, compatibility guarantees, and a robust cross-platform regression fixture for duplicate ZIP entries.
+Before declaring the format stable, specify application ID syntax, version grammar, unknown-field policy, case-collision behavior across filesystems, future assets and dependencies, minimum runtime version, ZIP64 support policy, and compatibility guarantees.
