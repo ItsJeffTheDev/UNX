@@ -21,7 +21,7 @@ Principles:
 
 ## Current baseline
 
-The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-23, GitHub Actions completed Clippy, cargo build, and cargo test successfully on Windows, macOS, and Ubuntu for commit `941cd91`. A non-blocking `cargo fmt --all -- --check` audit is also present; formatting enforcement is not yet blocking.
+The repository contains a Rust CLI/interpreter prototype, draft language specification, sample `.unxc` source program, ZIP-based `.unx` package implementation, an experimental VS Code extension with syntax highlighting/snippets/run/package commands, a beginner tutorial, MIT license, and GitHub Actions workflow. As checked on 2026-10-23, GitHub Actions completed successfully on Windows, macOS, and Ubuntu, including Clippy, `cargo build`, and `cargo test` (latest verified run: [#158](https://github.com/ItsJeffTheDev/UNX/actions/runs/39976371144)). A non-blocking `cargo fmt --all -- --check` audit is also present; formatting enforcement is not yet blocking. Dependabot is configured to propose weekly Cargo dependency updates and monthly GitHub Actions updates.
 
 Implemented today: full-line and trailing comments, string variables and variable copying, `say` output, single-line exact-string `if` conditions, nested multi-line exact-string `if` / optional `else` / required `end` blocks, experimental GUI windows/buttons, and the `run`, `check`, `pack`, and `inspect` commands.
 
@@ -40,7 +40,6 @@ Tasks:
 - [ ] Format the existing Rust source and tests, then make cargo fmt --all -- --check a blocking CI gate (currently an informational, non-blocking audit).
 - [ ] Verify documented commands from a clean checkout.
 - [x] Update project baseline documentation to reflect passing cross-platform CI.
-- [ ] Generate and commit Cargo.lock, then switch CI to locked builds and tests.
 - [x] Add contribution instructions, bug/feature issue forms, and a pull-request template.
 - [x] Document the current stable-channel policy and the outstanding lockfile/CI limitations in `docs/RUST-TOOLCHAIN.md`.
 
