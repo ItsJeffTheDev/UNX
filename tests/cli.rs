@@ -101,6 +101,31 @@ fn pack_inspect_and_run_work_end_to_end() {
 }
 
 #[test]
+fn packing_identical_project_twice_produces_identical_bytes() {
+    let dir = temp_dir("deterministic-pack");
+    let project = dir.join("project");
+    let first = dir.join("first.unx");
+    let second = dir.join("second.unx");
+    write_project(&project, "say \"REPRODUCIBLE\"\\n");
+
+    for output in [&first, &second] {
+        let result = unx(&[
+            "pack",
+            project.to_str().unwrap(),
+            output.to_str().unwrap(),
+        ]);
+        assert!(result.status.success(), "{}", text(&result.stderr));
+    }
+
+    assert_eq!(
+        fs::read(&first).unwrap(),
+        fs::read(&second).unwrap(),
+        "packing the same project twice should produce byte-identical packages"
+    );
+    fs::remove_dir_all(dir).unwrap();
+}
+
+#[test]
 fn pack_rejects_invalid_source_without_creating_package() {
     let dir = temp_dir("invalid-pack");
     let project = dir.join("project");
