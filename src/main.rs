@@ -1418,4 +1418,44 @@ mod tests {
         fs::remove_dir_all(&dir).unwrap();
     }
 
+    #[test]
+    fn package_reader_rejects_malformed_eocd_comment_length() {
+        let dir = unique_temp_dir("bad-eocd-comment");
+        let package = dir.join("bad-comment.unx");
+        write_zip_with_duplicate_names(&package);
+
+        let mut bytes = fs::read(&package).unwrap();
+        let eocd = (0..=bytes.len() - 4)
+            .rev()
+            .find(|&offset| bytes.get(offset..offset + 4) == Some(b"PK\x05\x06"))
+            .expect("EOCD in handcrafted ZIP");
+        bytes[eocd + 20] = 1;
+        bytes[eocd + 21] = 0;
+        fs::write(&package, bytes).unwrap();
+
+        let error = reject_duplicate_zip_entries(&package).unwrap_err();
+        assert!(error.contains("missing or malformed end-of-central-directory"), "unexpected error: {error}");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn package_reader_rejects_multi_disk_zip_metadata() {
+        let dir = unique_temp_dir("multi-disk");
+        let package = dir.join("multi-disk.unx");
+        write_zip_with_duplicate_names(&package);
+
+        let mut bytes = fs::read(&package).unwrap();
+        let eocd = (0..=bytes.len() - 4)
+            .rev()
+            .find(|&offset| bytes.get(offset..offset + 4) == Some(b"PK\x05\x06"))
+            .expect("EOCD in handcrafted ZIP");
+        bytes[eocd + 4] = 1;
+        bytes[eocd + 5] = 0;
+        fs::write(&package, bytes).unwrap();
+
+        let error = reject_duplicate_zip_entries(&package).unwrap_err();
+        assert!(error.contains("multi-disk ZIP packages are not supported"), "unexpected error: {error}");
+        fs::remove_dir_all(&dir).unwrap();
+    }
+
 }
