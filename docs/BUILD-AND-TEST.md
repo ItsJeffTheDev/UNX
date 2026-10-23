@@ -9,6 +9,7 @@ cargo build
 cargo test
 cargo test --test cli
 cargo run -- run .\examples\hello\main.unx
+cargo run -- run .\examples\numbers\main.unxc
 cargo run -- check .\examples\hello\main.unx
 cargo run -- pack .\examples\hello .\Hello.unx
 cargo run -- inspect .\Hello.unx
