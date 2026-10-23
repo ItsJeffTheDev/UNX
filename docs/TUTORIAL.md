@@ -69,7 +69,33 @@ Comments:
 
 String literals use double quotes. Supported escapes include backslash-n for newline, backslash-t for tab, escaped quote, and escaped backslash. Keywords are lowercase and case-sensitive. The prototype supports single-line and multi-line exact-string conditions, including nested `if` blocks and an optional `else`. It does not yet support arithmetic, loops, functions, or networking. GUI buttons and windows are experimental.
 
-## 5. Build a distributable package
+## 5. Work with numbers and conditions
+
+The current 0.2 preview supports integer arithmetic. Multiplication, division, and remainder bind more tightly than addition and subtraction, and parentheses can group operations:
+
+    set subtotal to 2 + 3 * 4
+    say subtotal
+    set grouped to (2 + 3) * 4
+    say grouped
+
+Output:
+
+    14
+    20
+
+Numeric conditions use comparison symbols and can be written as a block or a single-line condition:
+
+    set score to 10
+    if score > 5
+      say "Score is above five"
+    else
+      say "Score is five or below"
+    end
+    if score >= 10 say "At least ten"
+
+The supported numeric comparisons are `>`, `<`, `>=`, `<=`, `==`, and `!=`. Variables used in numeric expressions must contain integers. Decimal numbers, Boolean values, compound conditions, loops, and functions are not supported yet. The 0.2 expression syntax is still a preview rather than a stable compatibility promise.
+
+## 6. Build a distributable package
 
 Create a folder like this:
 
@@ -103,15 +129,15 @@ Run it with the current prototype:
 
 This creates a ZIP-based .unx package containing the manifest and source entry. It does not compile to machine code or make a standalone mobile/desktop installer.
 
-## 6. Use the VS Code extension
+## 7. Use the VS Code extension
 
 The experimental extension is in editors/vscode/. It registers .unxc as the UNX language, adds syntax coloring and snippets, and provides UNX: Run Current .unxc File and UNX: Build .unx Package commands. See the extension guide in editors/vscode/README.md.
 
-## 7. Share your project
+## 8. Share your project
 
 Share the source project (including .unxc files and manifest.json) through GitHub. For distributing a built prototype package, share the .unx file and explain which UNX runtime is required. Never run packages from untrusted sources; this prototype is not a hardened sandbox.
 
-## 8. What cross-platform will eventually require
+## 9. What cross-platform will eventually require
 
 To deliver the long-term write-once, distribute-widely goal, UNX still needs:
 - a stable language specification and compiler/build pipeline;
