@@ -1,0 +1,13 @@
+# UNX integer arithmetic and numeric comparisons (0.2 preview)
+set base to 10
+set adjustment to 2 * 3
+set total to base + adjustment
+say total # 16
+
+if total >= 16
+    say "The total is at least sixteen."
+else
+    say "The total is below sixteen."
+end
+
+if total != 15 say "The total is not fifteen."
