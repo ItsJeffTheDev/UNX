@@ -24,7 +24,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      # Formatting enforcement will be enabled after the existing source baseline is formatted.
+      # Temporary visibility into formatting debt; this becomes blocking after the baseline is formatted.
+      - name: Check Rust formatting (non-blocking baseline audit)
+        continue-on-error: true
+        run: cargo fmt --all -- --check
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
       - name: Build
