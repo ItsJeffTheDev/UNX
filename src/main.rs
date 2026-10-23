@@ -1113,6 +1113,37 @@ mod tests {
     }
 
     #[test]
+    fn tokenizer_rejects_incomplete_comparison_operators() {
+        for operator in ["=", "!"] {
+            let error = tokenize_line(operator, 1, 1).unwrap_err();
+            assert!(error.contains("unexpected token"), "operator {operator:?}: {error}");
+        }
+    }
+
+    #[test]
+    fn parser_builds_numeric_expression_with_expected_precedence() {
+        let program = parse_program("set total to 2 + 3 * 4").unwrap();
+        assert_eq!(program.len(), 1);
+        assert_eq!(
+            program[0],
+            Statement::SetNumber {
+                name: "total".into(),
+                expression: Expr::Binary(
+                    Box::new(Expr::Number(2)),
+                    ArithmeticOperator::Add,
+                    Box::new(Expr::Binary(
+                        Box::new(Expr::Number(3)),
+                        ArithmeticOperator::Multiply,
+                        Box::new(Expr::Number(4)),
+                    )),
+                ),
+                line: 1,
+                column: 1,
+            }
+        );
+    }
+
+    #[test]
     fn parser_builds_statements_with_source_lines() {
         let program = parse_program("# comment\nset name to \"UNX\"\nsay name\nsay \"hello\"").unwrap();
         assert_eq!(program.len(), 3);
