@@ -602,12 +602,61 @@ fn validate_manifest(manifest: &Manifest) -> Result<(), String> {
     Ok(())
 }
 
+fn reject_duplicate_zip_entries(path: &Path) -> Result<(), String> {
+    // zip::ZipArchive may expose duplicate central-directory names as a single
+    // logical entry, so inspect the central directory before opening the archive.
+    let bytes = fs::read(path).map_err(|e| format!("cannot read package: {e}"))?;
+    let search_start = bytes.len().saturating_sub(22 + u16::MAX as usize);
+    let eocd = (search_start..=bytes.len().saturating_sub(4))
+        .rev()
+        .find(|&offset| bytes.get(offset..offset + 4) == Some(b"PK\\x05\\x06"))
+        .ok_or_else(|| "invalid ZIP package: missing end-of-central-directory record".to_string())?;
+    if eocd + 22 > bytes.len() {
+        return Err("invalid ZIP package: truncated end-of-central-directory record".into());
+    }
+    let entries = u16::from_le_bytes([bytes[eocd + 10], bytes[eocd + 11]]) as usize;
+    let central_size = u32::from_le_bytes(bytes[eocd + 12..eocd + 16].try_into().unwrap()) as usize;
+    let central_offset = u32::from_le_bytes(bytes[eocd + 16..eocd + 20].try_into().unwrap()) as usize;
+    if entries == u16::MAX as usize || central_size == u32::MAX as usize || central_offset == u32::MAX as usize {
+        return Err("ZIP64 package directories are not supported".into());
+    }
+    let central_end = central_offset.checked_add(central_size)
+        .filter(|&end| end <= bytes.len())
+        .ok_or_else(|| "invalid ZIP package: central directory is out of bounds".to_string())?;
+    let mut cursor = central_offset;
+    let mut names = std::collections::HashSet::new();
+    for _ in 0..entries {
+        if cursor + 46 > central_end || bytes.get(cursor..cursor + 4) != Some(b"PK\\x01\\x02") {
+            return Err("invalid ZIP package: malformed central directory".into());
+        }
+        let name_len = u16::from_le_bytes([bytes[cursor + 28], bytes[cursor + 29]]) as usize;
+        let extra_len = u16::from_le_bytes([bytes[cursor + 30], bytes[cursor + 31]]) as usize;
+        let comment_len = u16::from_le_bytes([bytes[cursor + 32], bytes[cursor + 33]]) as usize;
+        let name_start = cursor + 46;
+        let name_end = name_start.checked_add(name_len)
+            .filter(|&end| end <= central_end)
+            .ok_or_else(|| "invalid ZIP package: truncated entry name".to_string())?;
+        let name = bytes[name_start..name_end].to_vec();
+        if !names.insert(name.clone()) {
+            let display_name = String::from_utf8_lossy(&name);
+            return Err(format!("duplicate ZIP entry '{display_name}'"));
+        }
+        cursor = name_end.checked_add(extra_len).and_then(|n| n.checked_add(comment_len))
+            .filter(|&end| end <= central_end)
+            .ok_or_else(|| "invalid ZIP package: truncated central directory entry".to_string())?;
+    }
+    if cursor != central_end {
+        return Err("invalid ZIP package: central directory size mismatch".into());
+    }
+    Ok(())
+}
+
 fn load_package(path: &Path) -> Result<(Manifest, String), String> {
     let metadata = fs::metadata(path).map_err(|e| format!("cannot inspect package: {e}"))?;
     if metadata.len() > MAX_PACKAGE_BYTES {
         return Err("package exceeds the 20 MiB size limit".into());
     }
-    let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
+    reject_duplicate_zip_entries(path)?;\n    let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("invalid ZIP package: {e}"))?;
     let mut names = std::collections::HashSet::new();
     for index in 0..archive.len() {
