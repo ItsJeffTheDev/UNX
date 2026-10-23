@@ -656,7 +656,8 @@ fn load_package(path: &Path) -> Result<(Manifest, String), String> {
     if metadata.len() > MAX_PACKAGE_BYTES {
         return Err("package exceeds the 20 MiB size limit".into());
     }
-    reject_duplicate_zip_entries(path)?;\n    let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
+    reject_duplicate_zip_entries(path)?;
+    let file = File::open(path).map_err(|e| format!("cannot open package: {e}"))?;
     let mut archive = zip::ZipArchive::new(file).map_err(|e| format!("invalid ZIP package: {e}"))?;
     let mut names = std::collections::HashSet::new();
     for index in 0..archive.len() {
