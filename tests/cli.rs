@@ -126,6 +126,20 @@ if score != 10 say "wrong inequality"
 }
 
 #[test]
+fn numeric_example_runs_with_documented_output() {
+    let example = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("examples")
+        .join("numbers")
+        .join("main.unxc");
+    let result = unx(&["run", example.to_str().unwrap()]);
+    assert!(result.status.success(), "{}", text(&result.stderr));
+    assert_eq!(
+        text(&result.stdout),
+        "16\nThe total is at least sixteen.\nThe total is not fifteen.\n"
+    );
+}
+
+#[test]
 fn numeric_expressions_report_division_by_zero_and_type_errors() {
     let dir = temp_dir("numeric-errors");
     let division = dir.join("division.unxc");
