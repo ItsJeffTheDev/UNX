@@ -713,7 +713,10 @@ fn command_pack(project: &Path, output: &Path) -> Result<(), String> {
     }
     let file = File::create(output).map_err(|e| format!("cannot create output: {e}"))?;
     let mut zip = zip::ZipWriter::new(file);
-    let options = zip::write::SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let options = zip::write::SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .last_modified_time(zip::DateTime::default())
+        .unix_permissions(0o644);
     zip.start_file(MANIFEST_NAME, options).map_err(|e| e.to_string())?;
     zip.write_all(manifest_text.as_bytes()).map_err(|e| e.to_string())?;
     zip.start_file(&manifest.entry, options).map_err(|e| e.to_string())?;
